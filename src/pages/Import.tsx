@@ -491,8 +491,8 @@ const Import: React.FC = () => {
               </p>
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </div>
   );
 };
