@@ -185,12 +185,14 @@ const Goals: React.FC = () => {
         <GoalInsights />
 
         {/* Filters and Controls */}
-        <GoalFilters 
-          filterBy={filterBy}
-          setFilterBy={setFilterBy}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-        />
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+          <GoalFilters 
+            filterBy={filterBy}
+            setFilterBy={setFilterBy}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
+        </Card>
 
         {/* Goals Grid */}
         <div className="space-y-6">
@@ -249,6 +251,15 @@ const Goals: React.FC = () => {
               </div>
             </Card>
           )}
+        </div>
+
+        {/* Floating Action Button for Mobile */}
+        <div className="fixed bottom-6 right-6 lg:hidden">
+          <Button 
+            icon={Plus} 
+            onClick={() => setIsModalOpen(true)}
+            className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
+          />
         </div>
 
         {/* Goal Creation/Edit Modal */}
