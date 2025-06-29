@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Brain, TrendingUp, Users, Target, Lightbulb, MessageSquare, Search, Zap, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Users, Target, Lightbulb, MessageSquare } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import AIQueryInterface from '../components/intelligence/AIQueryInterface';
+import RelationshipAlerts from '../components/intelligence/RelationshipAlerts';
 import { getIntelligenceInsights } from '../api/intelligence';
 
 const Intelligence: React.FC = () => {
-  const [aiQuery, setAiQuery] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { data: insights, isLoading } = useQuery({
@@ -14,14 +15,11 @@ const Intelligence: React.FC = () => {
     queryFn: getIntelligenceInsights,
   });
 
-  const handleAiQuery = async () => {
-    if (!aiQuery.trim()) return;
-    
+  const handleAiQuery = async (query: string) => {
     setIsProcessing(true);
     // Simulate AI processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsProcessing(false);
-    setAiQuery('');
   };
 
   if (isLoading) {
@@ -37,38 +35,27 @@ const Intelligence: React.FC = () => {
     );
   }
 
-  const quickQueries = [
-    "Who haven't I spoken to in 90 days?",
-    "Which connections could help with fundraising?",
-    "Show me at-risk relationships",
-    "Who should I introduce to each other?",
-    "Find opportunities in my network"
-  ];
-
   const relationshipAlerts = [
     {
-      type: 'opportunity',
+      type: 'opportunity' as const,
       contact: 'Sarah Chen',
       message: 'Just joined AI/ML committee at Stanford - perfect for your fundraising goal',
       action: 'Draft introduction',
-      priority: 'high',
-      icon: Zap
+      priority: 'high' as const
     },
     {
-      type: 'risk',
+      type: 'risk' as const,
       contact: 'Michael Rodriguez',
       message: 'No contact in 90 days, engagement score dropped 15%',
       action: 'Schedule catch-up',
-      priority: 'medium',
-      icon: AlertTriangle
+      priority: 'medium' as const
     },
     {
-      type: 'milestone',
+      type: 'milestone' as const,
       contact: 'Emily Johnson',
       message: 'Work anniversary next week - good reconnection opportunity',
       action: 'Send congratulations',
-      priority: 'low',
-      icon: Target
+      priority: 'low' as const
     }
   ];
 
@@ -114,57 +101,7 @@ const Intelligence: React.FC = () => {
 
       {/* AI Query Interface */}
       <Card>
-        <div className="p-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Ask Your Network Anything
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Natural language queries about your relationships and opportunities
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex space-x-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="e.g., Who in my network works in AI and could help with introductions?"
-                  value={aiQuery}
-                  onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAiQuery()}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <Button 
-                onClick={handleAiQuery}
-                loading={isProcessing}
-                disabled={!aiQuery.trim()}
-              >
-                Ask AI
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Try asking:</span>
-              {quickQueries.map((query, index) => (
-                <button
-                  key={index}
-                  onClick={() => setAiQuery(query)}
-                  className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {query}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <AIQueryInterface onQuery={handleAiQuery} isProcessing={isProcessing} />
       </Card>
 
       {/* Network Intelligence Overview */}
@@ -214,54 +151,7 @@ const Intelligence: React.FC = () => {
 
       {/* Relationship Alerts */}
       <Card>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Relationship Alerts
-            </h3>
-            <Button variant="ghost" size="sm">
-              View All
-            </Button>
-          </div>
-          <div className="space-y-4">
-            {relationshipAlerts.map((alert, index) => {
-              const Icon = alert.icon;
-              const priorityColors = {
-                high: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20',
-                medium: 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20',
-                low: 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-              };
-              
-              return (
-                <div key={index} className={`p-4 rounded-lg border ${priorityColors[alert.priority as keyof typeof priorityColors]}`}>
-                  <div className="flex items-start space-x-3">
-                    <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {alert.contact}
-                        </h4>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          alert.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
-                          alert.priority === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                          'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                        }`}>
-                          {alert.priority}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        {alert.message}
-                      </p>
-                      <Button variant="outline" size="sm">
-                        {alert.action}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <RelationshipAlerts alerts={relationshipAlerts} />
       </Card>
 
       {/* Intelligence Cards */}
