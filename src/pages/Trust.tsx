@@ -1,43 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Check, X, AlertTriangle, Lock, Eye, EyeOff, Key, Download, Trash2, Settings } from 'lucide-react';
+import { Shield, Check, X, AlertTriangle, Lock, Eye, EyeOff, Key, Download, Trash2, Settings, TrendingUp, Users, Clock, Filter } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
+import TrustChart from '../components/trust/TrustChart';
+import TrustAlert from '../components/trust/TrustAlert';
 import { getTrustMetrics } from '../api/trust';
-
-interface UserSettings {
-  notifications: {
-    email: boolean;
-    push: boolean;
-    weekly: boolean;
-    mentions: boolean;
-    goalReminders: boolean;
-    relationshipAlerts: boolean;
-  };
-  preferences: {
-    language: string;
-    timezone: string;
-    dateFormat: string;
-    currency: string;
-  };
-  ai: {
-    assistantEnabled: boolean;
-    insightFrequency: string;
-    autoSuggestions: boolean;
-    learningMode: string;
-  };
-  integrations: {
-    linkedin: boolean;
-    google: boolean;
-    outlook: boolean;
-    slack: boolean;
-  };
-}
 
 const Trust: React.FC = () => {
   const [showSensitiveData, setShowSensitiveData] = useState(false);
+  const [selectedTier, setSelectedTier] = useState('all');
   const [privacySettings, setPrivacySettings] = useState({
     profileVisibility: 'connections',
     contactSharing: false,
@@ -71,11 +45,17 @@ const Trust: React.FC = () => {
     updateSettingsMutation.mutate(newSettings);
   };
 
+  const handleTrustAlertAction = (alertId: string, action: string) => {
+    console.log(`Action ${action} for alert ${alertId}`);
+    // Handle alert actions here
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <Spinner size="lg" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading trust metrics...</p>
         </div>
       </div>
     );
@@ -103,110 +83,64 @@ const Trust: React.FC = () => {
     return 'text-red-600';
   };
 
-  const securityChecks = [
-    { 
-      label: 'End-to-End Encryption', 
-      status: true,
-      description: 'All relationship data encrypted with your personal key',
-      critical: true
-    },
-    { 
-      label: 'Two-Factor Authentication', 
-      status: trustData?.twoFactorEnabled || false,
-      description: 'Additional security layer for account access',
-      critical: true
-    },
-    { 
-      label: 'Zero-Knowledge Architecture', 
-      status: true,
-      description: 'Rhiz cannot access your decrypted relationship data',
-      critical: true
-    },
-    { 
-      label: 'Regular Security Audits', 
-      status: true,
-      description: 'Third-party security assessments every quarter',
-      critical: false
-    },
-    { 
-      label: 'Automated Backups', 
-      status: trustData?.backupsEnabled || true,
-      description: 'Encrypted daily backups of your data',
-      critical: false
-    },
-    { 
-      label: 'Privacy Controls', 
-      status: trustData?.privacyControlsEnabled || true,
-      description: 'Granular control over data sharing and visibility',
-      critical: false
-    },
-    { 
-      label: 'Audit Logging', 
-      status: trustData?.auditLoggingEnabled || true,
-      description: 'Complete log of data access and changes',
-      critical: false
-    }
-  ];
-
-  const dataCategories = [
-    {
-      name: 'Contact Information',
-      description: 'Names, emails, phone numbers, companies',
-      encrypted: true,
-      shared: false,
-      retention: '2 years after last activity'
-    },
-    {
-      name: 'Interaction History',
-      description: 'Communication logs, meeting notes, relationship timeline',
-      encrypted: true,
-      shared: false,
-      retention: '5 years or until deletion request'
-    },
-    {
-      name: 'Trust Scores',
-      description: 'Relationship strength metrics and engagement data',
-      encrypted: true,
-      shared: false,
-      retention: 'Calculated in real-time, not stored'
-    },
-    {
-      name: 'Usage Analytics',
-      description: 'App usage patterns for feature improvement',
-      encrypted: true,
-      shared: true,
-      retention: '1 year, anonymized after 30 days'
-    }
-  ];
+  const filteredAlerts = selectedTier === 'all' 
+    ? trustData?.lowTrustAlerts || []
+    : (trustData?.lowTrustAlerts || []).filter(alert => {
+        if (selectedTier === 'high') return alert.severity === 'high';
+        if (selectedTier === 'medium') return alert.severity === 'medium';
+        if (selectedTier === 'low') return alert.severity === 'low';
+        return true;
+      });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trust & Privacy</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Your relationship data is protected by enterprise-grade security and privacy-first design.
-        </p>
-      </div>
-
-      {/* Trust Score Overview */}
-      <Card>
-        <div className="p-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Privacy Trust Score
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Your overall data security and privacy rating
-              </p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Trust & Privacy Intelligence
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Advanced relationship trust scoring with enterprise-grade privacy protection
+            </p>
           </div>
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="outline" 
+              icon={Settings}
+              className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50"
+            >
+              Privacy Settings
+            </Button>
+            <Button 
+              icon={Shield} 
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
+            >
+              Security Audit
+            </Button>
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="text-center">
+        {/* Trust Score Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Overall Score */}
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Overall Trust Score
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Network relationship health
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center mb-6">
               <div className={`text-6xl font-bold mb-2 ${getScoreColor(trustScore)}`}>
                 {trustScore}
               </div>
@@ -222,100 +156,229 @@ const Trust: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 mb-1">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="text-lg font-bold text-green-600">
                   {trustData?.securityFeatures || 7}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
                   Security Features
                 </div>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="text-lg font-bold text-blue-600">
                   {trustData?.privacyControls || 12}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
                   Privacy Controls
                 </div>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600 mb-1">
-                  {trustData?.auditEvents || 247}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Security Events
-                </div>
+            </div>
+          </Card>
+
+          {/* Average Response Time */}
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                <Clock className="w-6 h-6 text-white" />
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-indigo-600 mb-1">
-                  0
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Data Breaches
-                </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Avg Response Time
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Network responsiveness
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
 
-      {/* Security Checklist */}
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Security & Encryption Status
-          </h3>
-          <div className="space-y-4">
-            {securityChecks.map((check, index) => (
-              <div key={index} className={`flex items-start space-x-3 p-4 rounded-lg border ${
-                check.critical 
-                  ? check.status 
-                    ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' 
-                    : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
-                  : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700'
-              }`}>
-                <div className={`p-1 rounded-full ${check.status ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
-                  {check.status ? (
-                    <Check className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <X className="w-4 h-4 text-red-600" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900 dark:text-white">
-                      {check.label}
-                      {check.critical && (
-                        <span className="ml-2 text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 px-2 py-1 rounded-full">
-                          Critical
-                        </span>
-                      )}
-                    </h4>
-                    <span className={`text-sm font-medium ${check.status ? 'text-green-600' : 'text-red-600'}`}>
-                      {check.status ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {check.description}
-                  </p>
-                  {!check.status && (
-                    <Button variant="outline" size="sm" className="mt-2">
-                      Enable Now
-                    </Button>
-                  )}
-                </div>
+            <div className="text-center mb-6">
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {trustData?.avgResponseTime || '2.3h'}
               </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Average response time
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600 font-medium">15% faster</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Immediate (< 1h)</span>
+                <span className="font-medium text-gray-900 dark:text-white">45%</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Same day (< 24h)</span>
+                <span className="font-medium text-gray-900 dark:text-white">35%</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Delayed (> 24h)</span>
+                <span className="font-medium text-gray-900 dark:text-white">20%</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Dormant Percentage */}
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Dormant Contacts
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Inactive relationships
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center mb-6">
+              <div className="text-4xl font-bold text-orange-600 mb-2">
+                {trustData?.dormantPercentage || 15}%
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                No contact in 90+ days
+              </div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full">
+                <div 
+                  className="h-3 bg-gradient-to-r from-orange-500 to-red-600 rounded-full transition-all duration-1000"
+                  style={{ width: `${trustData?.dormantPercentage || 15}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">At Risk (60-90 days)</span>
+                <span className="font-medium text-yellow-600">8</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Dormant (90+ days)</span>
+                <span className="font-medium text-red-600">12</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Trust Tier Filters */}
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Trust Tier Distribution
+            </h3>
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={selectedTier}
+                onChange={(e) => setSelectedTier(e.target.value)}
+                className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm"
+              >
+                <option value="all">All Tiers</option>
+                <option value="high">High Trust</option>
+                <option value="medium">Medium Trust</option>
+                <option value="low">Low Trust</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {trustData?.tiers?.map((tier, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedTier(tier.name.toLowerCase().split(' ')[0])}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  selectedTier === tier.name.toLowerCase().split(' ')[0] || selectedTier === 'all'
+                    ? `border-${tier.color}-300 bg-${tier.color}-50 dark:bg-${tier.color}-900/20`
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`font-semibold text-${tier.color}-800 dark:text-${tier.color}-400`}>
+                    {tier.name}
+                  </h4>
+                  <span className={`text-2xl font-bold text-${tier.color}-600`}>
+                    {tier.count}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <div 
+                      className={`h-2 bg-${tier.color}-500 rounded-full transition-all duration-1000`}
+                      style={{ width: `${tier.percentage}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {tier.percentage}%
+                  </span>
+                </div>
+              </button>
             ))}
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* Privacy Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        {/* Trust Timeline Chart */}
+        <TrustChart 
+          data={trustData?.timelineData || []} 
+          className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50"
+        />
+
+        {/* Low Trust Alerts */}
+        <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Privacy Settings
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Trust Alerts & Risk Assessment
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Relationships requiring attention ({filteredAlerts.length} alerts)
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" icon={Settings}>
+                Alert Settings
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {filteredAlerts.length > 0 ? (
+                filteredAlerts.map((alert) => (
+                  <TrustAlert
+                    key={alert.id}
+                    alert={alert}
+                    onAction={handleTrustAlertAction}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    All relationships healthy
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    No trust alerts detected. Your network relationships are performing well.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Privacy Controls and Data Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+              Privacy Controls
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -347,14 +410,12 @@ const Trust: React.FC = () => {
                     Allow mutual connections to see shared contacts
                   </p>
                 </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={privacySettings.contactSharing}
-                    onChange={(e) => handlePrivacyChange('contactSharing', e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                </div>
+                <input
+                  type="checkbox"
+                  checked={privacySettings.contactSharing}
+                  onChange={(e) => handlePrivacyChange('contactSharing', e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -366,66 +427,23 @@ const Trust: React.FC = () => {
                     Track interactions for relationship insights
                   </p>
                 </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={privacySettings.activityTracking}
-                    onChange={(e) => handlePrivacyChange('activityTracking', e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Data Collection Level
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    How much data to collect for AI insights
-                  </p>
-                </div>
-                <select 
-                  value={privacySettings.dataCollection}
-                  onChange={(e) => handlePrivacyChange('dataCollection', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="minimal">Minimal</option>
-                  <option value="standard">Standard</option>
-                  <option value="enhanced">Enhanced</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Third-party Integrations
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Allow connections to external services
-                  </p>
-                </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={privacySettings.thirdPartyIntegrations}
-                    onChange={(e) => handlePrivacyChange('thirdPartyIntegrations', e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                  />
-                </div>
+                <input
+                  type="checkbox"
+                  checked={privacySettings.activityTracking}
+                  onChange={(e) => handlePrivacyChange('activityTracking', e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
               Data Management
             </h3>
             <div className="space-y-4">
               <Button variant="outline" className="w-full justify-start" icon={Download}>
-                Export All Data
+                Export Trust Data
               </Button>
               
               <Button variant="outline" className="w-full justify-start" icon={Key}>
@@ -436,95 +454,21 @@ const Trust: React.FC = () => {
                 Advanced Privacy Settings
               </Button>
 
-              <Button variant="outline" className="w-full justify-start" icon={AlertTriangle}>
-                Report Security Issue
-              </Button>
-
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                   Danger Zone
                 </h4>
                 <Button variant="danger" size="sm" icon={Trash2}>
-                  Delete All Data
+                  Delete All Trust Data
                 </Button>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  This action cannot be undone. All your relationship data will be permanently deleted.
+                  This action cannot be undone. All trust scores and relationship data will be permanently deleted.
                 </p>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
-
-      {/* Data Categories */}
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Data Categories & Retention
-          </h3>
-          <div className="space-y-4">
-            {dataCategories.map((category, index) => (
-              <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    {category.name}
-                  </h4>
-                  <div className="flex space-x-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      category.encrypted 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                    }`}>
-                      {category.encrypted ? 'Encrypted' : 'Not Encrypted'}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      category.shared 
-                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                    }`}>
-                      {category.shared ? 'Shared' : 'Private'}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {category.description}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Retention: {category.retention}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* Compliance Information */}
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Compliance & Certifications
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { name: 'GDPR', status: 'Compliant', color: 'green' },
-              { name: 'CCPA', status: 'Compliant', color: 'green' },
-              { name: 'SOC 2', status: 'Type II', color: 'blue' },
-              { name: 'ISO 27001', status: 'Certified', color: 'purple' }
-            ].map((cert, index) => (
-              <div key={index} className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="font-medium text-gray-900 dark:text-white">{cert.name}</div>
-                <div className={`text-sm ${
-                  cert.color === 'green' ? 'text-green-600' :
-                  cert.color === 'blue' ? 'text-blue-600' :
-                  'text-purple-600'
-                }`}>
-                  {cert.status}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
     </div>
   );
 };
