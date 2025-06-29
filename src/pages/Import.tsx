@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, FileText, CheckCircle, AlertTriangle, Download, Users, Mail, Building, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Upload, FileText, CheckCircle, AlertTriangle, Download, Users, Mail, Building, MapPin, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
 import Papa from 'papaparse';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
+import ContactForm from '../components/contacts/ContactForm';
+import ContactSearch from '../components/contacts/ContactSearch';
 
 interface ImportResult {
   success: number;
@@ -22,17 +25,43 @@ interface ImportStats {
   trustScoresCalculated: number;
 }
 
+interface ParsedContact {
+  [key: string]: string;
+}
+
+interface ColumnMapping {
+  [csvColumn: string]: string;
+}
+
 const Import: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [parsedData, setParsedData] = useState<ParsedContact[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
+  const [importProgress, setImportProgress] = useState(0);
+  const [previewContacts, setPreviewContacts] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [relationshipFilter, setRelationshipFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const importMutation = useMutation({
     mutationFn: async (contacts: any[]) => {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setImporting(true);
+      setImportProgress(0);
+      
+      // Simulate processing with progress updates
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setImportProgress(i);
+      }
       
       const existingContacts = JSON.parse(localStorage.getItem('rhiz-contacts') || '[]');
       const updatedContacts = [...existingContacts, ...contacts];
@@ -40,111 +69,54 @@ const Import: React.FC = () => {
       
       return contacts;
     },
-    onSuccess: () => {
+    onSuccess: (contacts) => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      setImporting(false);
+      
+      // Navigate to contacts page after successful import
+      setTimeout(() => {
+        navigate('/app/contacts');
+      }, 2000);
     }
   });
 
+  const requiredFields = ['name', 'email', 'company', 'title'];
+  const optionalFields = ['phone', 'location', 'tags', 'notes'];
+  const allFields = [...requiredFields, ...optionalFields];
+
   const handleFileUpload = (file: File) => {
     if (!file) return;
-
-    setImporting(true);
-    setResult(null);
-    setImportStats(null);
 
     Papa.parse(file, {
       header: true,
       complete: (results) => {
         try {
-          const validContacts = [];
-          const errors = [];
-          let duplicates = 0;
-          let enriched = 0;
-
-          const existingEmails = new Set(
-            JSON.parse(localStorage.getItem('rhiz-contacts') || '[]').map((c: any) => c.email)
-          );
-
-          results.data.forEach((row: any, index) => {
-            if (!row.name || !row.email) {
-              errors.push(`Row ${index + 1}: Missing required fields (name, email)`);
-              return;
-            }
-
-            // Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(row.email)) {
-              errors.push(`Row ${index + 1}: Invalid email format`);
-              return;
-            }
-
-            // Check for duplicates
-            if (existingEmails.has(row.email)) {
-              duplicates++;
-              return;
-            }
-
-            // Simulate data enrichment
-            const isEnriched = Math.random() > 0.3; // 70% chance of enrichment
-            if (isEnriched) enriched++;
-
-            validContacts.push({
-              id: `imported-${Date.now()}-${index}`,
-              name: row.name,
-              email: row.email,
-              phone: row.phone || '',
-              company: row.company || (isEnriched ? ['TechCorp', 'StartupInc', 'BigCorp', 'InnovateLab'][Math.floor(Math.random() * 4)] : ''),
-              title: row.title || (isEnriched ? ['Engineer', 'Manager', 'Director', 'VP'][Math.floor(Math.random() * 4)] : ''),
-              location: row.location || (isEnriched ? ['San Francisco, CA', 'New York, NY', 'Austin, TX', 'Seattle, WA'][Math.floor(Math.random() * 4)] : ''),
-              notes: row.notes || '',
-              tags: row.tags ? row.tags.split(',').map((tag: string) => tag.trim()) : [],
-              lastContact: null,
-              trustScore: isEnriched ? Math.floor(Math.random() * 30) + 70 : undefined,
-              relationshipStrength: isEnriched ? ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] : undefined,
-              source: 'import',
-              enriched: isEnriched
-            });
+          const headers = Object.keys(results.data[0] || {});
+          setCsvHeaders(headers);
+          setParsedData(results.data as ParsedContact[]);
+          
+          // Auto-map columns based on common names
+          const autoMapping: ColumnMapping = {};
+          headers.forEach(header => {
+            const lowerHeader = header.toLowerCase();
+            if (lowerHeader.includes('name') || lowerHeader.includes('full')) autoMapping[header] = 'name';
+            else if (lowerHeader.includes('email') || lowerHeader.includes('mail')) autoMapping[header] = 'email';
+            else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile')) autoMapping[header] = 'phone';
+            else if (lowerHeader.includes('company') || lowerHeader.includes('organization')) autoMapping[header] = 'company';
+            else if (lowerHeader.includes('title') || lowerHeader.includes('position') || lowerHeader.includes('job')) autoMapping[header] = 'title';
+            else if (lowerHeader.includes('location') || lowerHeader.includes('city') || lowerHeader.includes('address')) autoMapping[header] = 'location';
+            else if (lowerHeader.includes('tag') || lowerHeader.includes('category')) autoMapping[header] = 'tags';
+            else if (lowerHeader.includes('note') || lowerHeader.includes('comment')) autoMapping[header] = 'notes';
           });
-
-          importMutation.mutate(validContacts);
-
-          setResult({
-            success: validContacts.length,
-            errors,
-            data: validContacts,
-            duplicates,
-            enriched
-          });
-
-          setImportStats({
-            totalProcessed: results.data.length,
-            newContacts: validContacts.length,
-            duplicatesFound: duplicates,
-            dataEnriched: enriched,
-            trustScoresCalculated: validContacts.filter(c => c.trustScore).length
-          });
-
+          
+          setColumnMapping(autoMapping);
+          setCurrentStep(2);
         } catch (error) {
-          setResult({
-            success: 0,
-            errors: ['Failed to process file. Please check the format and try again.'],
-            data: [],
-            duplicates: 0,
-            enriched: 0
-          });
-        } finally {
-          setImporting(false);
+          console.error('Error parsing CSV:', error);
         }
       },
       error: (error) => {
-        setResult({
-          success: 0,
-          errors: [`File parsing error: ${error.message}`],
-          data: [],
-          duplicates: 0,
-          enriched: 0
-        });
-        setImporting(false);
+        console.error('CSV parsing error:', error);
       }
     });
   };
@@ -171,6 +143,110 @@ const Import: React.FC = () => {
     setDragActive(false);
   };
 
+  const generatePreview = () => {
+    const mappedContacts = parsedData.slice(0, 5).map((row, index) => {
+      const contact: any = {
+        id: `preview-${index}`,
+        name: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'name') || ''] || 'Unknown',
+        email: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'email') || ''] || '',
+        phone: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'phone') || ''] || '',
+        company: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'company') || ''] || '',
+        title: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'title') || ''] || '',
+        location: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'location') || ''] || '',
+        notes: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'notes') || ''] || '',
+        tags: (row[Object.keys(columnMapping).find(key => columnMapping[key] === 'tags') || ''] || '').split(',').map(tag => tag.trim()).filter(Boolean),
+        trustScore: Math.floor(Math.random() * 30) + 70,
+        relationshipStrength: ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)],
+        mutualConnections: Math.floor(Math.random() * 10) + 1,
+        relationshipType: ['colleague', 'friend', 'client'][Math.floor(Math.random() * 3)]
+      };
+      return contact;
+    });
+    
+    setPreviewContacts(mappedContacts);
+    setCurrentStep(3);
+  };
+
+  const processImport = () => {
+    const validContacts = [];
+    const errors = [];
+    let duplicates = 0;
+    let enriched = 0;
+
+    const existingEmails = new Set(
+      JSON.parse(localStorage.getItem('rhiz-contacts') || '[]').map((c: any) => c.email)
+    );
+
+    parsedData.forEach((row, index) => {
+      const mappedContact: any = {};
+      
+      // Map columns to contact fields
+      Object.keys(columnMapping).forEach(csvColumn => {
+        const fieldName = columnMapping[csvColumn];
+        if (fieldName && row[csvColumn]) {
+          if (fieldName === 'tags') {
+            mappedContact[fieldName] = row[csvColumn].split(',').map(tag => tag.trim()).filter(Boolean);
+          } else {
+            mappedContact[fieldName] = row[csvColumn];
+          }
+        }
+      });
+
+      // Validation
+      if (!mappedContact.name || !mappedContact.email) {
+        errors.push(`Row ${index + 1}: Missing required fields (name, email)`);
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(mappedContact.email)) {
+        errors.push(`Row ${index + 1}: Invalid email format`);
+        return;
+      }
+
+      // Check for duplicates
+      if (existingEmails.has(mappedContact.email)) {
+        duplicates++;
+        return;
+      }
+
+      // Simulate data enrichment
+      const isEnriched = Math.random() > 0.3;
+      if (isEnriched) enriched++;
+
+      validContacts.push({
+        ...mappedContact,
+        id: `imported-${Date.now()}-${index}`,
+        lastContact: null,
+        trustScore: isEnriched ? Math.floor(Math.random() * 30) + 70 : undefined,
+        relationshipStrength: isEnriched ? ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] : undefined,
+        source: 'import',
+        enriched: isEnriched
+      });
+    });
+
+    importMutation.mutate(validContacts);
+
+    setResult({
+      success: validContacts.length,
+      errors,
+      data: validContacts,
+      duplicates,
+      enriched
+    });
+
+    setImportStats({
+      totalProcessed: parsedData.length,
+      newContacts: validContacts.length,
+      duplicatesFound: duplicates,
+      dataEnriched: enriched,
+      trustScoresCalculated: validContacts.filter(c => c.trustScore).length
+    });
+
+    setCurrentStep(4);
+  };
+
   const downloadTemplate = () => {
     const csvContent = 'name,email,phone,company,title,location,tags,notes\n' +
       'John Doe,john@example.com,+1-555-0123,Acme Corp,Software Engineer,San Francisco CA,"tech,startup",Met at React Conference\n' +
@@ -186,6 +262,17 @@ const Import: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const resetImport = () => {
+    setCurrentStep(1);
+    setParsedData([]);
+    setCsvHeaders([]);
+    setColumnMapping({});
+    setPreviewContacts([]);
+    setResult(null);
+    setImportStats(null);
+    setImportProgress(0);
+  };
+
   const integrationOptions = [
     { name: 'LinkedIn', icon: Users, description: 'Import professional connections', status: 'coming-soon' },
     { name: 'Google Contacts', icon: Mail, description: 'Sync Gmail and Google contacts', status: 'available' },
@@ -194,305 +281,568 @@ const Import: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Import & Sync</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Bring your existing contacts into Rhiz with intelligent deduplication and data enrichment.
-        </p>
-      </div>
-
-      {/* Import Methods */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* CSV Upload */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              CSV File Upload
-            </h2>
-            
-            <div 
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive 
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
-                  : 'border-gray-300 dark:border-gray-600'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Import & Sync Intelligence
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Intelligent contact import with deduplication, enrichment, and trust scoring
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="outline" 
+              icon={FileText}
+              onClick={downloadTemplate}
+              className="bg-white/80 backdrop-blur-sm border-indigo-200 hover:bg-indigo-50"
             >
-              {importing ? (
-                <div className="space-y-4">
-                  <Spinner size="lg" className="mx-auto" />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      Processing Your Contacts
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Deduplicating, enriching, and calculating trust scores...
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    Drop your CSV file here
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    or click to browse files
-                  </p>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                    className="hidden"
-                    id="file-upload"
-                    disabled={importing}
-                  />
-                  <label htmlFor="file-upload">
-                    <Button
-                      as="span"
-                      variant="outline"
-                      className="cursor-pointer"
-                    >
-                      Choose File
-                    </Button>
-                  </label>
-                </>
-              )}
-            </div>
+              Download Template
+            </Button>
+            {currentStep > 1 && (
+              <Button 
+                variant="outline"
+                onClick={resetImport}
+                className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-gray-50"
+              >
+                Start Over
+              </Button>
+            )}
+          </div>
+        </div>
 
-            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-              <p className="font-medium mb-2">Supported format: CSV with these columns:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li><strong>name</strong> (required) - Full name</li>
-                <li><strong>email</strong> (required) - Email address</li>
-                <li>phone, company, title, location, tags, notes (optional)</li>
-              </ul>
-            </div>
+        {/* Progress Steps */}
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+          <div className="flex items-center justify-between mb-6">
+            {[
+              { step: 1, title: 'Upload File', icon: Upload },
+              { step: 2, title: 'Map Columns', icon: Building },
+              { step: 3, title: 'Preview Data', icon: Users },
+              { step: 4, title: 'Import Complete', icon: CheckCircle }
+            ].map(({ step, title, icon: Icon }, index) => (
+              <div key={step} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
+                  currentStep >= step 
+                    ? 'bg-indigo-600 border-indigo-600 text-white' 
+                    : 'border-gray-300 text-gray-400'
+                }`}>
+                  {currentStep > step ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="ml-3">
+                  <p className={`text-sm font-medium ${
+                    currentStep >= step ? 'text-indigo-600' : 'text-gray-500'
+                  }`}>
+                    Step {step}
+                  </p>
+                  <p className={`text-xs ${
+                    currentStep >= step ? 'text-gray-900 dark:text-white' : 'text-gray-400'
+                  }`}>
+                    {title}
+                  </p>
+                </div>
+                {index < 3 && (
+                  <div className={`w-16 h-0.5 mx-4 ${
+                    currentStep > step ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`} />
+                )}
+              </div>
+            ))}
           </div>
         </Card>
 
-        {/* Template & Integrations */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Template & Integrations
-            </h2>
-            
-            <div className="space-y-4 mb-6">
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                  CSV Template
+        {/* Step 1: File Upload */}
+        {currentStep === 1 && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                Upload CSV File
+              </h2>
+              
+              <div 
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
+                  dragActive 
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 scale-105' 
+                    : 'border-gray-300 dark:border-gray-600 hover:border-indigo-400'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-3">
+                  Drop your CSV file here
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Download our template to ensure your data is formatted correctly.
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  or click to browse files
                 </p>
-                <Button
-                  variant="outline"
-                  icon={FileText}
-                  onClick={downloadTemplate}
-                  size="sm"
-                >
-                  Download Template
-                </Button>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload">
+                  <Button
+                    as="span"
+                    className="cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  >
+                    Choose File
+                  </Button>
+                </label>
+              </div>
+
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Supported CSV Format
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="font-medium text-green-600 mb-1">Required:</p>
+                    <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                      <li>• name</li>
+                      <li>• email</li>
+                      <li>• company</li>
+                      <li>• title</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-600 mb-1">Optional:</p>
+                    <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                      <li>• phone</li>
+                      <li>• location</li>
+                      <li>• tags</li>
+                      <li>• notes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                Quick Integrations
+              </h2>
+              
+              <div className="space-y-4">
+                {integrationOptions.map((integration, index) => {
+                  const Icon = integration.icon;
+                  return (
+                    <div key={index} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                          <Icon className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white">
+                            {integration.name}
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {integration.description}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant={integration.status === 'available' ? 'primary' : 'outline'}
+                        size="sm"
+                        disabled={integration.status === 'coming-soon'}
+                      >
+                        {integration.status === 'available' ? 'Connect' : 'Soon'}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Step 2: Column Mapping */}
+        {currentStep === 2 && (
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Map CSV Columns to Contact Fields
+              </h2>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {parsedData.length} rows detected
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Column Mapping
+                </h3>
+                <div className="space-y-4">
+                  {csvHeaders.map((header, index) => (
+                    <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {header}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Sample: {parsedData[0]?.[header] || 'No data'}
+                        </p>
+                      </div>
+                      <div className="w-40">
+                        <select
+                          value={columnMapping[header] || ''}
+                          onChange={(e) => setColumnMapping(prev => ({
+                            ...prev,
+                            [header]: e.target.value
+                          }))}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        >
+                          <option value="">Skip Column</option>
+                          {allFields.map(field => (
+                            <option key={field} value={field}>
+                              {field.charAt(0).toUpperCase() + field.slice(1)}
+                              {requiredFields.includes(field) && ' *'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <h3 className="font-medium text-gray-900 dark:text-white mb-3">
-                  Direct Integrations
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Preview Sample Data
                 </h3>
-                <div className="space-y-2">
-                  {integrationOptions.map((integration, index) => {
-                    const Icon = integration.icon;
-                    return (
-                      <div key={index} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                              {integration.name}
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {integration.description}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant={integration.status === 'available' ? 'primary' : 'outline'}
-                          size="sm"
-                          disabled={integration.status === 'coming-soon'}
-                        >
-                          {integration.status === 'available' ? 'Connect' : 'Soon'}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Import Statistics */}
-      {importStats && (
-        <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Import Statistics
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
-                  {importStats.totalProcessed}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Total Processed
-                </div>
-              </div>
-              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-green-600 mb-1">
-                  {importStats.newContacts}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  New Contacts
-                </div>
-              </div>
-              <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600 mb-1">
-                  {importStats.duplicatesFound}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Duplicates Skipped
-                </div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600 mb-1">
-                  {importStats.dataEnriched}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Data Enriched
-                </div>
-              </div>
-              <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-indigo-600 mb-1">
-                  {importStats.trustScoresCalculated}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Trust Scores
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Results Section */}
-      {result && (
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Import Results
-            </h2>
-            
-            <div className="space-y-4">
-              {result.success > 0 && (
-                <div className="flex items-start space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <CheckCircle className="w-6 h-6 text-green-600 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium text-green-800 dark:text-green-200">
-                      Successfully imported {result.success} contacts
-                    </p>
-                    <div className="text-sm text-green-700 dark:text-green-300 mt-1 space-y-1">
-                      <p>• {result.enriched} contacts enriched with additional data</p>
-                      <p>• {result.duplicates} duplicates automatically skipped</p>
-                      <p>• Trust scores calculated for all new contacts</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {result.errors.length > 0 && (
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="w-6 h-6 text-yellow-600 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
-                        Import completed with {result.errors.length} warnings:
-                      </p>
-                      <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300 max-h-32 overflow-y-auto">
-                        {result.errors.map((error, index) => (
-                          <li key={index}>• {error}</li>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        {csvHeaders.slice(0, 4).map(header => (
+                          <th key={header} className="text-left py-2 px-2 font-medium text-gray-900 dark:text-white">
+                            {header}
+                          </th>
                         ))}
-                      </ul>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedData.slice(0, 5).map((row, index) => (
+                        <tr key={index} className="border-b border-gray-100 dark:border-gray-700">
+                          {csvHeaders.slice(0, 4).map(header => (
+                            <td key={header} className="py-2 px-2 text-gray-600 dark:text-gray-400">
+                              {row[header] || '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700 mt-8">
+              <Button
+                variant="outline"
+                icon={ArrowLeft}
+                onClick={() => setCurrentStep(1)}
+              >
+                Back to Upload
+              </Button>
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Required fields mapped: {requiredFields.filter(field => 
+                    Object.values(columnMapping).includes(field)
+                  ).length}/{requiredFields.length}
+                </div>
+                <Button
+                  icon={ArrowRight}
+                  onClick={generatePreview}
+                  disabled={!requiredFields.every(field => 
+                    Object.values(columnMapping).includes(field)
+                  )}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  Generate Preview
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Step 3: Preview Data */}
+        {currentStep === 3 && (
+          <div className="space-y-6">
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Preview Import Data
+                </h2>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing 5 of {parsedData.length} contacts
+                </div>
+              </div>
+
+              <ContactSearch 
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                relationshipFilter={relationshipFilter}
+                setRelationshipFilter={setRelationshipFilter}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
+            </Card>
+
+            <div className="grid grid-cols-1 gap-4">
+              {previewContacts.map((contact, index) => (
+                <Card key={index} className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold">
+                          {contact.name.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {contact.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {contact.title} at {contact.company}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {contact.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {contact.trustScore}
+                        </div>
+                        <div className="text-xs text-gray-500">Trust Score</div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        contact.relationshipStrength === 'strong' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : contact.relationshipStrength === 'medium'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                      }`}>
+                        {contact.relationshipStrength}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                </Card>
+              ))}
+            </div>
 
-              {result.success === 0 && result.errors.length > 0 && (
-                <div className="text-center pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setResult(null)}
-                  >
-                    Try Again
-                  </Button>
+            <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Import Summary
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-indigo-600">
+                    {parsedData.length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Total Contacts
+                  </div>
                 </div>
-              )}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {Math.floor(parsedData.length * 0.7)}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Will be Enriched
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {parsedData.length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Trust Scores
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    0
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Duplicates
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                icon={ArrowLeft}
+                onClick={() => setCurrentStep(2)}
+              >
+                Back to Mapping
+              </Button>
+              <Button
+                icon={Upload}
+                onClick={processImport}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                Import {parsedData.length} Contacts
+              </Button>
             </div>
           </div>
-        </Card>
-      )}
+        )}
 
-      {/* Data Enrichment Info */}
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Intelligent Data Processing
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <Users className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                Deduplication
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Automatically merge duplicate contacts
-              </p>
-            </div>
-            <div className="text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <Building className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                Enrichment
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Add missing company and role data
-              </p>
-            </div>
-            <div className="text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <MapPin className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                Geocoding
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Standardize location information
-              </p>
-            </div>
-            <div className="text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <CheckCircle className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                Trust Scores
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Calculate initial relationship strength
-              </p>
-            </div>
+        {/* Step 4: Import Progress & Results */}
+        {currentStep === 4 && (
+          <div className="space-y-6">
+            {importing && (
+              <Card className="p-8 text-center bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Spinner size="lg" className="text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Processing Your Contacts
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Deduplicating, enriching, and calculating trust scores...
+                </p>
+                <div className="max-w-md mx-auto">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{importProgress}%</span>
+                  </div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <div 
+                      className="h-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-300"
+                      style={{ width: `${importProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {result && importStats && (
+              <div className="space-y-6">
+                <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        Import Completed Successfully!
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Your contacts have been imported and enriched with AI intelligence
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {importStats.newContacts}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        New Contacts
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {importStats.dataEnriched}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Data Enriched
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {importStats.trustScoresCalculated}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Trust Scores
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {importStats.duplicatesFound}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Duplicates Skipped
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                      <div className="text-2xl font-bold text-indigo-600">
+                        {importStats.totalProcessed}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Total Processed
+                      </div>
+                    </div>
+                  </div>
+
+                  {result.errors.length > 0 && (
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-6">
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                            Import completed with {result.errors.length} warnings:
+                          </p>
+                          <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300 max-h-32 overflow-y-auto">
+                            {result.errors.slice(0, 5).map((error, index) => (
+                              <li key={index}>• {error}</li>
+                            ))}
+                            {result.errors.length > 5 && (
+                              <li>• ... and {result.errors.length - 5} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-center space-x-4">
+                    <Button
+                      variant="outline"
+                      onClick={resetImport}
+                    >
+                      Import More Contacts
+                    </Button>
+                    <Button
+                      icon={Users}
+                      onClick={() => navigate('/app/contacts')}
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    >
+                      View All Contacts
+                    </Button>
+                  </div>
+                </Card>
+
+                <div className="text-center p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">
+                    🎉 Redirecting to your contacts in a few seconds...
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                    Your new contacts are now part of your intelligent relationship graph
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </Card>
+        )}
+      </div>
     </div>
   );
 };
