@@ -1,30 +1,108 @@
 {
-  "name": "Rhiz - Network Intelligence Platform",
+  "name": "Rhiz - Intelligent Relationship Engine",
   "short_name": "Rhiz",
-  "description": "Professional network intelligence and relationship management platform",
-  "start_url": "/",
+  "description": "Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance.",
+  "start_url": "/login",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0F172A",
   "theme_color": "#6366F1",
-  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["productivity", "business", "social"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "pwa-192x192.png",
+      "src": "/rhiz-logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "favicon"
+      "purpose": "any"
     },
     {
-      "src": "pwa-512x512.png",
+      "src": "/rhiz-logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "favicon"
+      "purpose": "any"
     },
     {
-      "src": "pwa-512x512.png",
+      "src": "/rhiz-logo-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/rhiz-logo-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/rhiz-logo-apple-touch.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/rhiz-screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Rhiz mobile interface showing network intelligence dashboard"
+    },
+    {
+      "src": "/rhiz-screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Rhiz desktop interface with relationship graph visualization"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Assistant",
+      "short_name": "Ask AI",
+      "description": "Get intelligent insights about your network",
+      "url": "/app/intelligence",
+      "icons": [
+        {
+          "src": "/rhiz-logo-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Add Contact",
+      "short_name": "Add Contact",
+      "description": "Quickly add a new contact to your network",
+      "url": "/app/contacts?action=add",
+      "icons": [
+        {
+          "src": "/rhiz-logo-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Network Graph",
+      "short_name": "Network",
+      "description": "Visualize your relationship connections",
+      "url": "/app/network",
+      "icons": [
+        {
+          "src": "/rhiz-logo-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

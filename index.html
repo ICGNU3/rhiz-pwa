@@ -2,29 +2,125 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/rhiz-logo-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#6366F1" />
-    <meta name="description" content="Professional network intelligence and relationship management platform" />
+    <meta name="description" content="Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance." />
     
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Apple Touch Icon and PWA Meta Tags -->
+    <link rel="apple-touch-icon" href="/rhiz-logo-apple-touch.png" />
+    <link rel="mask-icon" href="/rhiz-logo-maskable-192.png" color="#6366F1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Rhiz" />
+    
+    <!-- Splash Screen for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- iPhone X, XS, 11 Pro -->
+    <link rel="apple-touch-startup-image" href="/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+    
+    <!-- iPhone XR, 11 -->
+    <link rel="apple-touch-startup-image" href="/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
+    
+    <!-- iPhone XS Max, 11 Pro Max -->
+    <link rel="apple-touch-startup-image" href="/splash-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
+    
+    <!-- iPhone 12, 13, 14 -->
+    <link rel="apple-touch-startup-image" href="/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)">
+    
+    <!-- iPhone 12 Pro Max, 13 Pro Max, 14 Plus -->
+    <link rel="apple-touch-startup-image" href="/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)">
+    
+    <!-- iPad -->
+    <link rel="apple-touch-startup-image" href="/splash-1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
+    
+    <!-- iPad Pro 11" -->
+    <link rel="apple-touch-startup-image" href="/splash-1668x2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)">
+    
+    <!-- iPad Pro 12.9" -->
+    <link rel="apple-touch-startup-image" href="/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)">
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#6366F1" />
+    <meta name="msapplication-TileImage" content="/rhiz-logo-192.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Rhiz - Network Intelligence Platform" />
-    <meta property="og:description" content="Professional network intelligence and relationship management platform" />
+    <meta property="og:title" content="Rhiz - Intelligent Relationship Engine" />
+    <meta property="og:description" content="Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://rhiz.app" />
+    <meta property="og:image" content="https://rhiz.app/rhiz-og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Rhiz" />
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Rhiz - Network Intelligence Platform" />
-    <meta name="twitter:description" content="Professional network intelligence and relationship management platform" />
+    <meta name="twitter:title" content="Rhiz - Intelligent Relationship Engine" />
+    <meta name="twitter:description" content="Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance." />
+    <meta name="twitter:image" content="https://rhiz.app/rhiz-twitter-card.png" />
+    <meta name="twitter:creator" content="@rhizapp" />
     
-    <title>Rhiz - Network Intelligence Platform</title>
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/rhiz-logo-192.png" as="image" type="image/png" />
+    
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    
+    <title>Rhiz - Intelligent Relationship Engine</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Install Prompt -->
+    <script>
+      // Enhanced install prompt handling
+      let deferredPrompt;
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show custom install UI
+        const installBanner = document.createElement('div');
+        installBanner.id = 'install-banner';
+        installBanner.innerHTML = `
+          <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 600; margin-bottom: 4px;">Install Rhiz</div>
+              <div style="font-size: 14px; opacity: 0.9;">Get the full experience with offline access</div>
+            </div>
+            <button id="install-btn" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer;">Install</button>
+            <button id="dismiss-btn" style="background: none; border: none; color: white; padding: 8px; cursor: pointer; opacity: 0.7;">✕</button>
+          </div>
+        `;
+        
+        document.body.appendChild(installBanner);
+        
+        document.getElementById('install-btn').addEventListener('click', async () => {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`Install prompt outcome: ${outcome}`);
+          document.body.removeChild(installBanner);
+          deferredPrompt = null;
+        });
+        
+        document.getElementById('dismiss-btn').addEventListener('click', () => {
+          document.body.removeChild(installBanner);
+        });
+      });
+      
+      // Track app install
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('Rhiz PWA was installed');
+        // Analytics tracking could go here
+      });
+    </script>
   </body>
 </html>
