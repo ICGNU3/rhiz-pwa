@@ -206,15 +206,21 @@ const Trust: React.FC = () => {
 
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Immediate (< 1h)</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {"Immediate (< 1h)"}
+                </span>
                 <span className="font-medium text-gray-900 dark:text-white">45%</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Same day (< 24h)</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {"Same day (< 24h)"}
+                </span>
                 <span className="font-medium text-gray-900 dark:text-white">35%</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Delayed (> 24h)</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {"Delayed (> 24h)"}
+                </span>
                 <span className="font-medium text-gray-900 dark:text-white">20%</span>
               </div>
             </div>
