@@ -466,36 +466,36 @@ const Trust: React.FC = () => {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
+      </Card>
 
-        {/* Compliance Information */}
-        <Card>
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Compliance & Certifications
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { name: 'GDPR', status: 'Compliant', color: 'green' },
-                { name: 'CCPA', status: 'Compliant', color: 'green' },
-                { name: 'SOC 2', status: 'Type II', color: 'blue' },
-                { name: 'ISO 27001', status: 'Certified', color: 'purple' }
-              ].map((cert, index) => (
-                <div key={index} className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="font-medium text-gray-900 dark:text-white">{cert.name}</div>
-                  <div className={`text-sm ${
-                    cert.color === 'green' ? 'text-green-600' :
-                    cert.color === 'blue' ? 'text-blue-600' :
-                    'text-purple-600'
-                  }`}>
-                    {cert.status}
-                  </div>
+      {/* Compliance Information */}
+      <Card>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Compliance & Certifications
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { name: 'GDPR', status: 'Compliant', color: 'green' },
+              { name: 'CCPA', status: 'Compliant', color: 'green' },
+              { name: 'SOC 2', status: 'Type II', color: 'blue' },
+              { name: 'ISO 27001', status: 'Certified', color: 'purple' }
+            ].map((cert, index) => (
+              <div key={index} className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="font-medium text-gray-900 dark:text-white">{cert.name}</div>
+                <div className={`text-sm ${
+                  cert.color === 'green' ? 'text-green-600' :
+                  cert.color === 'blue' ? 'text-blue-600' :
+                  'text-purple-600'
+                }`}>
+                  {cert.status}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </div>
   );
 };
