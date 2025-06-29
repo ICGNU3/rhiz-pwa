@@ -68,7 +68,7 @@ const Contacts: React.FC = () => {
     createMutation.mutate(contactData);
   };
 
-  // Enhance contacts with mock data
+  // Enhance contacts with mock data for demo purposes
   const enhancedContacts = contacts?.map((contact: Contact) => ({
     ...contact,
     trustScore: Math.floor(Math.random() * 30) + 70,
@@ -78,7 +78,7 @@ const Contacts: React.FC = () => {
     relationshipType: ['friend', 'colleague', 'investor', 'mentor', 'client', 'partner'][Math.floor(Math.random() * 6)]
   }));
 
-  // Filter and sort contacts
+  // Filter and sort contacts based on search and filters
   const filteredContacts = enhancedContacts?.filter((contact: Contact) => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,6 +127,7 @@ const Contacts: React.FC = () => {
     );
   }
 
+  // Calculate stats for ContactStats component
   const strongRelationships = enhancedContacts?.filter(c => c.relationshipStrength === 'strong').length || 0;
   const averageTrustScore = Math.round((enhancedContacts?.reduce((sum, c) => sum + (c.trustScore || 0), 0) || 0) / (enhancedContacts?.length || 1));
   const growingEngagement = enhancedContacts?.filter(c => c.engagementTrend === 'up').length || 0;
