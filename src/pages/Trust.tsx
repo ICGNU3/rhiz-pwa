@@ -7,6 +7,35 @@ import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import { getTrustMetrics } from '../api/trust';
 
+interface UserSettings {
+  notifications: {
+    email: boolean;
+    push: boolean;
+    weekly: boolean;
+    mentions: boolean;
+    goalReminders: boolean;
+    relationshipAlerts: boolean;
+  };
+  preferences: {
+    language: string;
+    timezone: string;
+    dateFormat: string;
+    currency: string;
+  };
+  ai: {
+    assistantEnabled: boolean;
+    insightFrequency: string;
+    autoSuggestions: boolean;
+    learningMode: string;
+  };
+  integrations: {
+    linkedin: boolean;
+    google: boolean;
+    outlook: boolean;
+    slack: boolean;
+  };
+}
+
 const Trust: React.FC = () => {
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   const [privacySettings, setPrivacySettings] = useState({
