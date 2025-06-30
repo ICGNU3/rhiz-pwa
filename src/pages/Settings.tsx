@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -33,7 +33,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
-import { getUserSettings, updateUserSettings, UserSettings } from '../api/settings';
+import { getUserSettings, updateUserSettings, getUserStats, UserSettings } from '../api/settings';
+import { supabase } from '../api/client';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
@@ -42,90 +43,80 @@ const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [showSensitiveData, setShowSensitiveData] = useState(false);
   
-  const [settings, setSettings] = useState<UserSettings>({
-    profile: {
-      displayName: user?.name || '',
-      email: user?.email || '',
-      bio: '',
-      timezone: 'UTC-8',
-      language: 'en'
-    },
-    notifications: {
-      email: true,
-      push: false,
-      weekly: true,
-      mentions: true,
-      goalReminders: true,
-      relationshipAlerts: true,
-      networkUpdates: false,
-      aiInsights: true
-    },
-    integrations: {
-      linkedin: false,
-      google: false,
-      outlook: false,
-      slack: false,
-      calendly: false,
-      zoom: false
-    },
-    privacy: {
-      profileVisibility: 'connections',
-      contactSharing: false,
-      activityTracking: true,
-      dataCollection: 'minimal',
-      thirdPartyIntegrations: true,
-      analyticsOptOut: false
-    },
-    ai: {
-      assistantEnabled: true,
-      insightFrequency: 'daily',
-      autoSuggestions: true,
-      learningMode: 'adaptive',
-      personalizedRecommendations: true
-    },
-    user_id: user?.id || ''
+  // Fetch user settings
+  const { data: userSettings, isLoading: settingsLoading, error: settingsError } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: getUserSettings,
   });
-
-  const { data: userStats, isLoading: statsLoading } = useQuery({
+  
+  // Fetch user stats
+  const { data: userStats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['user-stats'],
-    queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return {
-        accountAge: '6 months',
-        totalContacts: 247,
-        goalsCompleted: 12,
-        networkGrowth: '+23%',
-        dataSize: '2.4 MB',
-        lastBackup: '2 hours ago',
-        loginSessions: 3,
-        dataExports: 2,
-        securityScore: 85
-      };
-    }
+    queryFn: getUserStats,
   });
+  
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  
+  // Initialize settings state when data is loaded
+  useEffect(() => {
+    if (userSettings) {
+      setSettings(userSettings);
+    }
+  }, [userSettings]);
 
   const updateSettingsMutation = useMutation({
-    mutationFn: async (newSettings: UserSettings) => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      localStorage.setItem('rhiz-user-settings', JSON.stringify(newSettings));
-      return newSettings;
-    },
+    mutationFn: updateUserSettings,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-settings'] });
       queryClient.invalidateQueries({ queryKey: ['user-stats'] });
     }
   });
 
   const exportDataMutation = useMutation({
     mutationFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const data = {
-        contacts: JSON.parse(localStorage.getItem('rhiz-contacts') || '[]'),
-        goals: JSON.parse(localStorage.getItem('rhiz-goals') || '[]'),
-        settings: settings,
+      // Get user data
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Get profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      // Get contacts
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      // Get goals
+      const { data: goals } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      // Get settings
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      const exportData = {
+        profile,
+        contacts: contacts || [],
+        goals: goals || [],
+        settings,
         exportDate: new Date().toISOString()
       };
       
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -136,6 +127,8 @@ const Settings: React.FC = () => {
   });
 
   const handleSettingChange = (section: keyof UserSettings, key: string, value: any) => {
+    if (!settings) return;
+    
     const newSettings = {
       ...settings,
       [section]: { ...settings[section], [key]: value }
@@ -146,6 +139,8 @@ const Settings: React.FC = () => {
 
   const handleProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!settings) return;
+    
     const formData = new FormData(e.currentTarget);
     const profileData = {
       displayName: formData.get('displayName') as string,
@@ -158,6 +153,20 @@ const Settings: React.FC = () => {
     const newSettings = { ...settings, profile: profileData };
     setSettings(newSettings);
     updateSettingsMutation.mutate(newSettings);
+    
+    // Also update the profile in the profiles table
+    supabase
+      .from('profiles')
+      .update({
+        name: profileData.displayName,
+        email: profileData.email
+      })
+      .eq('id', settings.user_id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('Error updating profile:', error);
+        }
+      });
   };
 
   const sidebarItems = [
@@ -214,13 +223,30 @@ const Settings: React.FC = () => {
     }
   ];
 
-  if (statsLoading) {
+  if (settingsLoading || statsLoading || !settings) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Spinner size="lg" className="mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (settingsError || statsError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
+        </div>
+        <ErrorBorder 
+          message="Failed to load settings. Please check your connection and try again."
+          onRetry={() => {
+            queryClient.invalidateQueries({ queryKey: ['user-settings'] });
+            queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+          }}
+        />
       </div>
     );
   }
@@ -325,15 +351,15 @@ const Settings: React.FC = () => {
                       <div className="flex items-center space-x-4">
                         <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-bold text-2xl">
-                            {user?.name?.charAt(0).toUpperCase()}
+                            {settings.profile.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         </div>
                         <div>
                           <h3 className="text-xl font-medium text-gray-900 dark:text-white">
-                            {user?.name}
+                            {settings.profile.displayName || user?.email?.split('@')[0] || 'User'}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400">
-                            {user?.email}
+                            {settings.profile.email || user?.email}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-500">
                             Member for {userStats?.accountAge}

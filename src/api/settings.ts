@@ -70,12 +70,19 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     return data;
   }
 
+  // Get user profile data
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('id', user.id)
+    .single();
+
   // Return default settings if none exist
   const defaultSettings: UserSettings = {
     user_id: user.id,
     profile: {
-      displayName: user.user_metadata?.name || user.email?.split('@')[0] || '',
-      email: user.email || '',
+      displayName: profileData?.name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+      email: profileData?.email || user.email || '',
       bio: '',
       timezone: 'UTC-8',
       language: 'en'
@@ -181,8 +188,15 @@ export const getUserStats = async () => {
     .eq('user_id', user.id)
     .eq('completed', true);
 
+  // Get user profile data
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .eq('id', user.id)
+    .single();
+
   // Calculate account age
-  const accountCreated = new Date(user.created_at);
+  const accountCreated = new Date(profileData?.created_at || user.created_at);
   const now = new Date();
   const monthsOld = Math.floor((now.getTime() - accountCreated.getTime()) / (1000 * 60 * 60 * 24 * 30));
   
