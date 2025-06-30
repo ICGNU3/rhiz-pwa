@@ -83,6 +83,7 @@ export default function AIQueryInterface({ onSend, isProcessing = false }: AIQue
     try {
       if (onSend) {
         await onSend(userQuery);
+        setQuery('');
       } else {
         await chatMutation.mutateAsync(userQuery);
       }
@@ -105,7 +106,7 @@ export default function AIQueryInterface({ onSend, isProcessing = false }: AIQue
   const isLoading = chatMutation.isPending || isProcessing;
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <div className="flex items-center space-x-4 mb-6">
         <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
           <Brain className="w-6 h-6 text-white" />
@@ -119,96 +120,6 @@ export default function AIQueryInterface({ onSend, isProcessing = false }: AIQue
           </p>
         </div>
       </div>
-
-      {/* Chat History */}
-      {chatHistory.length > 0 && (
-        <div className="mb-6 max-h-96 overflow-y-auto space-y-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          {chatHistory.map((message) => (
-            <div key={message.id} className="space-y-3">
-              {/* User Message */}
-              <div className="flex justify-end">
-                <div className="max-w-3xl p-4 rounded-lg bg-indigo-600 text-white">
-                  <p className="text-sm leading-relaxed">{message.query}</p>
-                  <p className="text-xs text-indigo-200 mt-2">
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-              
-              {/* AI Response */}
-              {message.response && (
-                <div className="flex justify-start">
-                  <div className="max-w-3xl p-4 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-start space-x-3">
-                      <div className="p-1 bg-gradient-to-br from-indigo-500 to-purple-600 rounded">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm leading-relaxed">{message.response}</p>
-                        
-                        {/* Confidence Score */}
-                        {message.confidence && (
-                          <div className="flex items-center space-x-2 mt-3">
-                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-600 rounded-full">
-                              <div 
-                                className="h-1 bg-green-500 rounded-full transition-all duration-1000"
-                                style={{ width: `${message.confidence * 100}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {Math.round(message.confidence * 100)}% confidence
-                            </span>
-                          </div>
-                        )}
-                        
-                        {/* Suggestions */}
-                        {message.suggestions && message.suggestions.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggested actions:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {message.suggestions.map((suggestion, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => setQuery(suggestion)}
-                                  className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900/30 transition-colors"
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          {new Date(message.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="max-w-3xl p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="p-1 bg-gradient-to-br from-indigo-500 to-purple-600 rounded">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Query Input */}
       <div className="space-y-4">
