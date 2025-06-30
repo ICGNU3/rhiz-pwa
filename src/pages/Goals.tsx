@@ -72,6 +72,7 @@ const Goals: React.FC = () => {
     updateMutation.mutate({ ...goal, completed: !goal.completed });
   };
 
+  // Filter and sort goals
   const filteredGoals = goals?.filter((goal: Goal) => {
     if (filterBy === 'all') return true;
     if (filterBy === 'active') return !goal.completed;
@@ -122,6 +123,7 @@ const Goals: React.FC = () => {
     );
   }
 
+  // Calculate stats for GoalStats component
   const activeGoals = goals?.filter(g => !g.completed).length || 0;
   const completedGoals = goals?.filter(g => g.completed).length || 0;
   const avgProgress = goals?.length ? 
