@@ -24,9 +24,9 @@ const Landing: React.FC = () => {
         <div className="mx-auto max-w-4xl pt-20 pb-32 sm:pt-32 sm:pb-40">
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Every vital connection in a
+              Drowning in contacts but
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                single view
+                losing real connections?
               </span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
