@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Network, Users, Zap, Search, Filter, Maximize2, Settings } from 'lucide-react';
 import Button from '../Button';
 
@@ -27,26 +27,66 @@ interface NetworkGraphProps {
   edges: NetworkEdge[];
   onNodeClick?: (node: NetworkNode) => void;
   selectedNode?: NetworkNode | null;
+  viewMode?: 'force' | 'cluster' | 'hierarchy';
+  minStrength?: number;
 }
 
-export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }: NetworkGraphProps) {
-  const [viewMode, setViewMode] = useState<'force' | 'cluster' | 'hierarchy'>('force');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [showLabels, setShowLabels] = useState(true);
+export default function NetworkGraph({ 
+  nodes, 
+  edges, 
+  onNodeClick, 
+  selectedNode,
+  viewMode = 'force',
+  minStrength = 0
+}: NetworkGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(true);
+  const [filterCategory, setFilterCategory] = useState('all');
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  // Simulate network layout positions
+  // Apply layout based on view mode
   useEffect(() => {
-    // In a real implementation, this would use a force-directed layout algorithm
-    // For now, we'll create a simple circular layout
+    if (nodes.length === 0) return;
+
     const centerX = 400;
     const centerY = 300;
-    const radius = 200;
     
     nodes.forEach((node, index) => {
-      const angle = (index / nodes.length) * 2 * Math.PI;
-      node.x = centerX + Math.cos(angle) * radius + (Math.random() - 0.5) * 100;
-      node.y = centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 100;
+      switch (viewMode) {
+        case 'force':
+          // Simulate force-directed layout
+          const angle = (index / nodes.length) * 2 * Math.PI;
+          const radius = 150 + (node.trustScore / 100) * 100;
+          node.x = centerX + Math.cos(angle) * radius + (Math.random() - 0.5) * 50;
+          node.y = centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 50;
+          break;
+          
+        case 'cluster':
+          // Group by category
+          const categories = [...new Set(nodes.map(n => n.category))];
+          const categoryIndex = categories.indexOf(node.category);
+          const clusterAngle = (categoryIndex / categories.length) * 2 * Math.PI;
+          const clusterRadius = 200;
+          const clusterCenterX = centerX + Math.cos(clusterAngle) * clusterRadius;
+          const clusterCenterY = centerY + Math.sin(clusterAngle) * clusterRadius;
+          
+          const nodeAngle = (index / nodes.length) * 2 * Math.PI;
+          const nodeRadius = 50;
+          node.x = clusterCenterX + Math.cos(nodeAngle) * nodeRadius;
+          node.y = clusterCenterY + Math.sin(nodeAngle) * nodeRadius;
+          break;
+          
+        case 'hierarchy':
+          // Arrange by trust score (hierarchy)
+          const sortedNodes = [...nodes].sort((a, b) => b.trustScore - a.trustScore);
+          const nodeIndex = sortedNodes.indexOf(node);
+          const level = Math.floor(nodeIndex / 5);
+          const positionInLevel = nodeIndex % 5;
+          
+          node.x = centerX + (positionInLevel - 2) * 120;
+          node.y = 100 + level * 100;
+          break;
+      }
     });
   }, [nodes, viewMode]);
 
@@ -78,8 +118,13 @@ export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }
   };
 
   const filteredNodes = filterCategory === 'all' 
-    ? nodes 
-    : nodes.filter(node => node.category === filterCategory);
+    ? nodes.filter(node => node.trustScore >= minStrength)
+    : nodes.filter(node => node.category === filterCategory && node.trustScore >= minStrength);
+
+  const filteredEdges = edges.filter(edge => 
+    filteredNodes.some(node => node.id === edge.source) &&
+    filteredNodes.some(node => node.id === edge.target)
+  );
 
   const categories = [...new Set(nodes.map(node => node.category))];
 
@@ -93,7 +138,6 @@ export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }
               {['force', 'cluster', 'hierarchy'].map((mode) => (
                 <button
                   key={mode}
-                  onClick={() => setViewMode(mode as any)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                     viewMode === mode
                       ? 'bg-indigo-600 text-white shadow-sm'
@@ -149,6 +193,7 @@ export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }
       {/* Network Visualization */}
       <div className="w-full h-full relative">
         <svg
+          ref={svgRef}
           width="100%"
           height="100%"
           viewBox="0 0 800 600"
@@ -174,9 +219,9 @@ export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }
 
           {/* Edges */}
           <g className="edges">
-            {edges.map((edge) => {
-              const sourceNode = nodes.find(n => n.id === edge.source);
-              const targetNode = nodes.find(n => n.id === edge.target);
+            {filteredEdges.map((edge) => {
+              const sourceNode = filteredNodes.find(n => n.id === edge.source);
+              const targetNode = filteredNodes.find(n => n.id === edge.target);
               
               if (!sourceNode || !targetNode || !sourceNode.x || !sourceNode.y || !targetNode.x || !targetNode.y) {
                 return null;
@@ -284,7 +329,7 @@ export default function NetworkGraph({ nodes, edges, onNodeClick, selectedNode }
         </svg>
 
         {/* Loading State */}
-        {nodes.length === 0 && (
+        {filteredNodes.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">

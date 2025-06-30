@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Network as NetworkIcon, Users, Building, MapPin, GitBranch, Zap, TrendingUp, Search, Filter, BarChart3 } from 'lucide-react';
+import { Network as NetworkIcon, Users, Building, MapPin, GitBranch, Zap, TrendingUp, Search, Filter, BarChart3, Maximize2, Settings } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
-import ContactCard from '../components/contacts/ContactCard';
+import ErrorBorder from '../components/ErrorBorder';
 import ContactSearch from '../components/contacts/ContactSearch';
 import NetworkGraph from '../components/network/NetworkGraph';
 import { getNetworkData } from '../api/network';
@@ -25,14 +25,36 @@ const Network: React.FC = () => {
   const [relationshipFilter, setRelationshipFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [minStrength, setMinStrength] = useState<number>(0);
+  const [networkViewMode, setNetworkViewMode] = useState<'force' | 'cluster' | 'hierarchy'>('force');
 
-  const { data: networkData, isLoading, error } = useQuery({
-    queryKey: ['network-data'],
-    queryFn: getNetworkData,
+  // Enhanced data fetching with filters
+  const { data: networkData, isLoading, error, refetch } = useQuery({
+    queryKey: ['network-data', filterTags, minStrength, relationshipFilter],
+    queryFn: () => getNetworkData({ 
+      tags: filterTags, 
+      minStrength, 
+      relationshipFilter: relationshipFilter !== 'all' ? relationshipFilter : undefined 
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handleNodeClick = (node: NetworkNode) => {
     setSelectedNode(node);
+  };
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    if (term) {
+      setFilterTags([term]);
+    } else {
+      setFilterTags([]);
+    }
+  };
+
+  const handleFilterChange = (filter: string) => {
+    setRelationshipFilter(filter);
   };
 
   if (isLoading) {
@@ -49,14 +71,13 @@ const Network: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Failed to load network data
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please check your connection and try again.
-          </p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Network Intelligence</h1>
         </div>
+        <ErrorBorder 
+          message="Failed to load network data. Please check your connection and try again."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -115,6 +136,7 @@ const Network: React.FC = () => {
             </Button>
             <Button 
               icon={Zap} 
+              onClick={() => refetch()}
               className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
             >
               Analyze Network
@@ -124,7 +146,7 @@ const Network: React.FC = () => {
 
         {/* Network Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+          <Card className="p-4" hover>
             <div className="flex items-center space-x-3">
               <Users className="w-8 h-8 text-indigo-600" />
               <div>
@@ -132,21 +154,27 @@ const Network: React.FC = () => {
                   {networkData?.totalConnections || 0}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Connections</p>
+                <p className="text-xs text-green-600 font-medium">
+                  +{networkData?.newConnections || 0} this month
+                </p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" hover>
             <div className="flex items-center space-x-3">
               <TrendingUp className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {networkData?.newConnections || 0}
+                  {networkData?.activeConnections || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">New This Month</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Active This Month</p>
+                <p className="text-xs text-green-600 font-medium">
+                  {Math.round(((networkData?.activeConnections || 0) / (networkData?.totalConnections || 1)) * 100)}% engagement
+                </p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" hover>
             <div className="flex items-center space-x-3">
               <GitBranch className="w-8 h-8 text-blue-600" />
               <div>
@@ -154,10 +182,13 @@ const Network: React.FC = () => {
                   {networkData?.networkDensity || 75}%
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Network Density</p>
+                <p className="text-xs text-blue-600 font-medium">
+                  Well connected
+                </p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4" hover>
             <div className="flex items-center space-x-3">
               <NetworkIcon className="w-8 h-8 text-purple-600" />
               <div>
@@ -165,6 +196,9 @@ const Network: React.FC = () => {
                   {networkData?.diversityScore || 82}%
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Diversity Score</p>
+                <p className="text-xs text-purple-600 font-medium">
+                  Excellent variety
+                </p>
               </div>
             </div>
           </Card>
@@ -172,123 +206,155 @@ const Network: React.FC = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Network Visualization */}
-          <div className="lg:col-span-3">
-            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Interactive Network Graph
-                </h2>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" icon={Filter}>
-                    Filters
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Export
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="h-96 lg:h-[600px]">
-                <NetworkGraph
-                  nodes={networkData?.nodes || []}
-                  edges={networkData?.edges || []}
-                  onNodeClick={handleNodeClick}
-                  selectedNode={selectedNode}
-                />
-              </div>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Contact Search */}
+          {/* Sidebar Filters */}
+          <aside className="space-y-6">
             <Card className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Search Network
+                Network Filters
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
                     placeholder="Search contacts..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
-                <select
-                  value={relationshipFilter}
-                  onChange={(e) => setRelationshipFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All Relationships</option>
-                  <option value="strong">Strong</option>
-                  <option value="medium">Medium</option>
-                  <option value="weak">Weak</option>
-                </select>
+
+                {/* Relationship Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Relationship Type
+                  </label>
+                  <select
+                    value={relationshipFilter}
+                    onChange={(e) => handleFilterChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="all">All Relationships</option>
+                    <option value="strong">Strong</option>
+                    <option value="medium">Medium</option>
+                    <option value="weak">Weak</option>
+                  </select>
+                </div>
+
+                {/* Trust Score Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Min Trust Score: {minStrength}
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={minStrength}
+                    onChange={(e) => setMinStrength(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 slider"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0</span>
+                    <span>50</span>
+                    <span>100</span>
+                  </div>
+                </div>
+
+                {/* Network View Mode */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Layout
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {['force', 'cluster', 'hierarchy'].map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setNetworkViewMode(mode as any)}
+                        className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                          networkViewMode === mode
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)} Layout
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </Card>
 
             {/* Selected Contact Detail */}
             {selectedNode && (
-              <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Contact Details
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">
-                          {selectedNode.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {selectedNode.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {selectedNode.title}
-                        </p>
-                      </div>
+              <Card className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Contact Details
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-semibold text-lg">
+                        {selectedNode.name.charAt(0)}
+                      </span>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Company:</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {selectedNode.company}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Trust Score:</span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {selectedNode.trustScore}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Relationship:</span>
-                        <span className={`text-sm font-medium ${
-                          selectedNode.relationshipStrength === 'strong' ? 'text-green-600' :
-                          selectedNode.relationshipStrength === 'medium' ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {selectedNode.relationshipStrength}
-                        </span>
-                      </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">
+                        {selectedNode.name}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedNode.title}
+                      </p>
                     </div>
-                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <Button size="sm" className="w-full">
-                        View Full Profile
-                      </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Company:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {selectedNode.company}
+                      </span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Trust Score:</span>
+                      <span className={`text-sm font-medium ${
+                        selectedNode.trustScore >= 80 ? 'text-green-600' :
+                        selectedNode.trustScore >= 60 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {selectedNode.trustScore}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Relationship:</span>
+                      <span className={`text-sm font-medium ${
+                        selectedNode.relationshipStrength === 'strong' ? 'text-green-600' :
+                        selectedNode.relationshipStrength === 'medium' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {selectedNode.relationshipStrength}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Category:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {selectedNode.category}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                    <Button size="sm" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+                      View Full Profile
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Send Message
+                    </Button>
                   </div>
                 </div>
               </Card>
             )}
 
-            {/* Quick Stats */}
+            {/* Quick Network Health */}
             <Card className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Network Health
@@ -303,7 +369,7 @@ const Network: React.FC = () => {
                   </div>
                   <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                     <div 
-                      className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
+                      className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-1000"
                       style={{ width: `${networkData?.networkDensity || 75}%` }}
                     ></div>
                   </div>
@@ -317,11 +383,75 @@ const Network: React.FC = () => {
                   </div>
                   <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
                     <div 
-                      className="h-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full"
+                      className="h-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-1000"
                       style={{ width: `${networkData?.diversityScore || 82}%` }}
                     ></div>
                   </div>
                 </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600 dark:text-gray-400">Activity</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {Math.round(((networkData?.activeConnections || 0) / (networkData?.totalConnections || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <div 
+                      className="h-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-full transition-all duration-1000"
+                      style={{ width: `${Math.round(((networkData?.activeConnections || 0) / (networkData?.totalConnections || 1)) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </aside>
+
+          {/* Network Visualization */}
+          <div className="lg:col-span-3">
+            <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Interactive Network Graph
+                </h2>
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" icon={Filter}>
+                    Advanced Filters
+                  </Button>
+                  <Button variant="outline" size="sm" icon={Maximize2}>
+                    Fullscreen
+                  </Button>
+                  <Button variant="outline" size="sm" icon={Settings}>
+                    Graph Settings
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="h-96 lg:h-[600px] relative">
+                <NetworkGraph
+                  nodes={networkData?.nodes || []}
+                  edges={networkData?.edges || []}
+                  onNodeClick={handleNodeClick}
+                  selectedNode={selectedNode}
+                  viewMode={networkViewMode}
+                  minStrength={minStrength}
+                />
+                
+                {/* Graph Loading State */}
+                {(!networkData?.nodes || networkData.nodes.length === 0) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <NetworkIcon className="w-8 h-8 text-white animate-pulse" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        Building Your Network Graph
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Analyzing relationships and calculating trust scores...
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
@@ -393,9 +523,9 @@ const Network: React.FC = () => {
             </div>
             <div className="space-y-3">
               {networkData?.topCompanies?.slice(0, 5).map((company: { name: string; count: number }, index: number) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                   <span className="text-gray-900 dark:text-white font-medium">{company.name}</span>
-                  <span className="text-sm bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-full">
+                  <span className="text-sm bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-full font-medium">
                     {company.count}
                   </span>
                 </div>
@@ -418,9 +548,9 @@ const Network: React.FC = () => {
             </div>
             <div className="space-y-3">
               {networkData?.topLocations?.slice(0, 5).map((location: { name: string; count: number }, index: number) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                   <span className="text-gray-900 dark:text-white font-medium">{location.name}</span>
-                  <span className="text-sm bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
+                  <span className="text-sm bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-full font-medium">
                     {location.count}
                   </span>
                 </div>
