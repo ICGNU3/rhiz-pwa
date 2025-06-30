@@ -25,12 +25,6 @@ let deferredPrompt: any;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  
-  // Show install button
-  const installButton = document.getElementById('install-button');
-  if (installButton) {
-    installButton.style.display = 'block';
-  }
 });
 
 // Create a client with optimized settings
@@ -41,7 +35,7 @@ const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000, // 10 minutes
       retry: 1, // Reduce retries to improve performance
       refetchOnWindowFocus: false, // Disable refetch on window focus
-      refetchOnReconnect: false, // Disable refetch on reconnect
+      refetchOnReconnect: true, // Enable refetch on reconnect
     },
   },
 });
@@ -55,11 +49,23 @@ const preloadImages = () => {
   images.forEach(src => {
     const img = new Image();
     img.src = src;
+    img.fetchPriority = 'high';
   });
 };
 
 // Execute preloading
 preloadImages();
+
+// Remove loading placeholder
+const removePlaceholder = () => {
+  const placeholder = document.querySelector('.loading-placeholder');
+  if (placeholder) {
+    placeholder.classList.add('fade-out');
+    setTimeout(() => {
+      placeholder.remove();
+    }, 300);
+  }
+};
 
 // Create root with error boundary
 const container = document.getElementById('root');
@@ -79,6 +85,11 @@ if (container) {
       </QueryClientProvider>
     </StrictMode>
   );
+
+  // Remove placeholder after render
+  window.addEventListener('load', () => {
+    removePlaceholder();
+  });
 }
 
 // Export for install functionality

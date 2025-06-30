@@ -4,7 +4,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Optimize React rendering
+      babel: {
+        plugins: [
+          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
+        ]
+      }
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
@@ -156,6 +163,7 @@ export default defineConfig({
     })
   ],
   optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', '@tanstack/react-query'],
     exclude: ['lucide-react'],
   },
   build: {
@@ -164,7 +172,8 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.debug', 'console.info']
       }
     },
     // Split chunks for better caching
@@ -182,16 +191,29 @@ export default defineConfig({
     // Reduce chunk size warnings
     chunkSizeWarningLimit: 1000,
     // Generate source maps for production
-    sourcemap: false
+    sourcemap: false,
+    // Improve tree-shaking
+    target: 'esnext',
+    // Reduce bundle size
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096
   },
   // Enable CSS code splitting
   css: {
-    devSourcemap: false
+    devSourcemap: false,
+    preprocessorOptions: {
+      // Add any CSS preprocessor options here
+    }
   },
   // Improve server performance
   server: {
     hmr: {
       overlay: false
     }
+  },
+  // Preload modules
+  esbuild: {
+    legalComments: 'none',
+    treeShaking: true
   }
 });

@@ -7,6 +7,7 @@ interface LazyImageProps {
   height?: number;
   className?: string;
   placeholderColor?: string;
+  fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 /**
@@ -18,7 +19,8 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
   width,
   height,
   className = '',
-  placeholderColor = '#f3f4f6'
+  placeholderColor = '#f3f4f6',
+  fetchPriority = 'auto'
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -53,6 +55,7 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
     if (isInView) {
       const img = new Image();
       img.src = src;
+      img.fetchPriority = fetchPriority;
       img.onload = () => {
         setImgSrc(src);
         setIsLoaded(true);
@@ -62,7 +65,7 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
         // Could set a fallback image here
       };
     }
-  }, [isInView, src]);
+  }, [isInView, src, fetchPriority]);
 
   // Generate a unique ID for the image
   const imageId = `lazy-image-${src.replace(/[^a-zA-Z0-9]/g, '-')}`;
@@ -84,8 +87,10 @@ const LazyImage: React.FC<LazyImageProps> = memo(({
           alt={alt}
           width={width}
           height={height}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'} transform-gpu`}
           loading="lazy"
+          fetchPriority={fetchPriority}
+          decoding="async"
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 animate-pulse">

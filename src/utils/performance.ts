@@ -96,6 +96,8 @@ export function lazyLoadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = src;
+    img.fetchPriority = 'high';
+    img.decoding = 'async';
     img.onload = () => resolve(img);
     img.onerror = reject;
   });
@@ -127,4 +129,48 @@ export function preloadResources(resources: string[]): void {
       document.head.appendChild(link);
     }
   });
+}
+
+/**
+ * Optimizes images by resizing and converting to WebP
+ * @param src Original image source
+ * @param width Desired width
+ * @param height Desired height
+ * @returns Optimized image URL
+ */
+export function optimizeImage(src: string, width?: number, height?: number): string {
+  // In a real app, you would use an image optimization service
+  // For now, we'll just return the original image
+  if (!src) return src;
+  
+  // If it's an external URL (like Pexels), return as is
+  if (src.startsWith('http')) return src;
+  
+  // For local images, we could implement resizing logic
+  return src;
+}
+
+/**
+ * Prefetches a page to improve navigation performance
+ * @param path Page path to prefetch
+ */
+export function prefetchPage(path: string): void {
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = path;
+  document.head.appendChild(link);
+}
+
+/**
+ * Measures time taken for a function to execute
+ * @param name Name of the function being measured
+ * @param fn Function to execute
+ * @returns Result of the function
+ */
+export function measureTime<T>(name: string, fn: () => T): T {
+  const start = performance.now();
+  const result = fn();
+  const end = performance.now();
+  console.log(`[Performance] ${name} took ${(end - start).toFixed(2)}ms`);
+  return result;
 }

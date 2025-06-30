@@ -64,6 +64,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = memo(({ message = "Loading..
             width="96"
             height="96"
             loading="eager"
+            fetchpriority="high"
           />
         </motion.div>
       </div>

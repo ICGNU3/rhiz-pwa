@@ -5,13 +5,29 @@ import Layout from './components/Layout';
 import PrivateAlphaRoute from './components/PrivateAlphaRoute';
 import AdminRoute from './components/AdminRoute';
 import LoadingScreen from './components/LoadingScreen';
+import { prefetchPage } from './utils/performance';
 
-// Lazy-loaded components
-const Landing = lazy(() => import('./pages/Landing'));
-const Login = lazy(() => import('./pages/Login'));
-const ApplyPage = lazy(() => import('./pages/ApplyPage'));
+// Lazy-loaded components with prefetching
+const Landing = lazy(() => {
+  prefetchPage('/login');
+  prefetchPage('/apply');
+  return import('./pages/Landing');
+});
+const Login = lazy(() => {
+  prefetchPage('/app/dashboard');
+  prefetchPage('/apply');
+  return import('./pages/Login');
+});
+const ApplyPage = lazy(() => {
+  prefetchPage('/login');
+  return import('./pages/ApplyPage');
+});
 const AdminApplicationsPage = lazy(() => import('./pages/admin/AdminApplicationsPage'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Dashboard = lazy(() => {
+  prefetchPage('/app/contacts');
+  prefetchPage('/app/goals');
+  return import('./pages/Dashboard');
+});
 const Goals = lazy(() => import('./pages/Goals'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const Import = lazy(() => import('./pages/Import'));

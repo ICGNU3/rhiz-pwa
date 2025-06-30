@@ -23,6 +23,15 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+  .will-change-transform {
+    will-change: transform;
+  }
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  .transform-gpu {
+    transform: translateZ(0);
+  }
 }
 
 /* Reduce layout shifts */
@@ -34,4 +43,40 @@ img, svg {
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Loading placeholder fade out */
+.loading-placeholder {
+  transition: opacity 0.3s ease-out;
+}
+
+.loading-placeholder.fade-out {
+  opacity: 0;
+}
+
+/* Optimize image loading */
+.lazy-image {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.lazy-image.loaded {
+  opacity: 1;
+}
+
+/* Improve performance for animations */
+.animate-optimized {
+  backface-visibility: hidden;
+  perspective: 1000;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
