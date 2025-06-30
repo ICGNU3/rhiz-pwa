@@ -26,29 +26,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error getting session:', error);
-      } else if (session) {
-        setSession(session);
-        setUser(session.user);
-        setIsAuthenticated(true);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        // Check if user is alpha and/or admin
-        const { data, error: userError } = await supabase
-          .from('users')
-          .select('is_alpha, is_admin')
-          .eq('id', session.user.id)
-          .single();
+        if (error) {
+          console.error('Error getting session:', error);
+        } else if (session) {
+          console.log('Initial session found:', session.user.email);
+          setSession(session);
+          setUser(session.user);
+          setIsAuthenticated(true);
           
-        if (!userError && data) {
-          setIsAlpha(data.is_alpha || false);
-          setIsAdmin(data.is_admin || false);
+          // Check user status in our users table
+          await checkUserStatus(session.user.id);
         }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     getInitialSession();
@@ -56,24 +52,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed:', event, session?.user?.email);
         
         if (session) {
           setSession(session);
           setUser(session.user);
           setIsAuthenticated(true);
           
-          // Check if user is alpha and/or admin
-          const { data, error } = await supabase
-            .from('users')
-            .select('is_alpha, is_admin')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (!error && data) {
-            setIsAlpha(data.is_alpha || false);
-            setIsAdmin(data.is_admin || false);
-          }
+          // Check user status
+          await checkUserStatus(session.user.id);
         } else {
           setSession(null);
           setUser(null);
@@ -89,23 +76,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app/dashboard`
+  const checkUserStatus = async (userId: string) => {
+    try {
+      // First check if user exists in our users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('is_alpha, is_admin')
+        .eq('id', userId)
+        .single();
+        
+      if (userError) {
+        console.log('User not found in users table, checking profiles...');
+        
+        // Check profiles table as fallback
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_alpha, is_admin')
+          .eq('id', userId)
+          .single();
+          
+        if (profileError) {
+          console.log('User not found in profiles table either, setting defaults');
+          setIsAlpha(false);
+          setIsAdmin(false);
+        } else {
+          setIsAlpha(profileData.is_alpha || false);
+          setIsAdmin(profileData.is_admin || false);
+        }
+      } else {
+        setIsAlpha(userData.is_alpha || false);
+        setIsAdmin(userData.is_admin || false);
       }
-    });
+    } catch (error) {
+      console.error('Error checking user status:', error);
+      setIsAlpha(false);
+      setIsAdmin(false);
+    }
+  };
 
-    if (error) {
-      throw new Error(error.message);
+  const login = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app/dashboard`
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 

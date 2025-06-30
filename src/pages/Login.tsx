@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import { Mail, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mail, CheckCircle, ArrowLeft, AlertTriangle } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,77 +12,44 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [searchParams] = useSearchParams();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Check for auth callback
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
       
-      if (error) {
-        console.error('Auth callback error:', error);
-        setError('Authentication failed. Please try again.');
-      } else if (data.session) {
-        // Check if user is approved for alpha
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('is_alpha')
-          .eq('id', data.session.user.id)
-          .single();
+      if (accessToken || refreshToken) {
+        console.log('Processing auth callback...');
+        try {
+          const { data, error } = await supabase.auth.getSession();
           
-        if (userError) {
-          console.error('User data fetch error:', userError);
-          setError('Failed to verify alpha access. Please try again.');
-          return;
-        }
-        
-        if (userData?.is_alpha) {
-          navigate('/app/dashboard');
-        } else {
-          // User is authenticated but not approved for alpha
-          navigate('/apply?pending=true');
+          if (error) {
+            console.error('Auth callback error:', error);
+            setError('Authentication failed. Please try again.');
+          } else if (data.session) {
+            console.log('Auth callback successful, user:', data.session.user.email);
+            // Let the AuthContext handle the redirect
+          }
+        } catch (error) {
+          console.error('Error processing auth callback:', error);
+          setError('Authentication failed. Please try again.');
         }
       }
     };
 
-    // Check if this is an auth callback
-    if (searchParams.get('access_token') || searchParams.get('refresh_token')) {
-      handleAuthCallback();
-    }
-  }, [searchParams, navigate]);
+    handleAuthCallback();
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      // Check if user is approved for alpha
-      const checkAlphaStatus = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) return;
-        
-        const { data, error } = await supabase
-          .from('users')
-          .select('is_alpha')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          console.error('User data fetch error:', error);
-          return;
-        }
-        
-        if (data?.is_alpha) {
-          navigate('/app/dashboard');
-        } else {
-          // User is authenticated but not approved for alpha
-          navigate('/apply?pending=true');
-        }
-      };
-      
-      checkAlphaStatus();
+    if (isAuthenticated && !authLoading) {
+      console.log('User is authenticated, redirecting to dashboard');
+      navigate('/app/dashboard');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,9 +57,12 @@ const Login: React.FC = () => {
     setError('');
 
     try {
+      console.log('Attempting login for:', email);
       await login(email);
       setEmailSent(true);
+      console.log('Magic link sent successfully');
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Failed to send magic link. Please try again.');
     } finally {
       setLoading(false);
@@ -104,6 +74,20 @@ const Login: React.FC = () => {
     setEmail('');
     setError('');
   };
+
+  // Show loading state during auth check
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
+        <div className="max-w-md w-full space-y-8">
+          <Card className="p-8 text-center bg-white/90 backdrop-blur-md border border-emerald/50">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-aqua mx-auto mb-4"></div>
+            <p className="text-gray-600 font-light">Checking authentication...</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (emailSent) {
     return (
@@ -193,8 +177,9 @@ const Login: React.FC = () => {
         <Card className="p-8 bg-white/90 backdrop-blur-md border border-emerald/50">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-light">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-light flex items-start space-x-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 

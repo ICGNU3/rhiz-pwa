@@ -2,57 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Spinner from './Spinner';
-import { supabase } from '../api/client';
 
 const PrivateAlphaRoute: React.FC = () => {
-  const { isAuthenticated, isAlpha, loading: authLoading } = useAuth();
+  const { isAuthenticated, isAlpha, loading: authLoading, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
-    const checkAlphaStatus = async () => {
-      if (!isAuthenticated) {
-        setLoading(false);
-        return;
-      }
-
-      // If isAlpha is already set in AuthContext, use that
-      if (isAlpha !== undefined) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setLoading(false);
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from('users')
-          .select('is_alpha')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          console.error('Error checking alpha status:', error);
-        }
-        
-      } catch (error) {
-        console.error('Error checking alpha status:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    // Wait for auth to finish loading
     if (!authLoading) {
-      checkAlphaStatus();
+      setLoading(false);
     }
-  }, [isAuthenticated, isAlpha, authLoading]);
+  }, [authLoading]);
 
-  if (authLoading || loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -64,13 +27,20 @@ const PrivateAlphaRoute: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // For now, let all authenticated users through
+  // You can enable alpha checking later by uncommenting the lines below
+  /*
   if (!isAlpha) {
+    console.log('User not alpha approved, redirecting to apply');
     return <Navigate to="/apply?pending=true" state={{ from: location }} replace />;
   }
+  */
 
+  console.log('User authenticated and approved, allowing access');
   return <Outlet />;
 };
 
