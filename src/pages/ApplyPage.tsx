@@ -227,9 +227,9 @@ const ApplyPage: React.FC = () => {
             'Purpose-Driven Relationship Structure',
             'Trust & Contribution Tracking'
           ].map((feature, index) => (
-            <Card key={index} className="p-6 text-center bg-white/10 backdrop-blur-md border border-emerald/50" hover>
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald to-aqua rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white font-light">
+            <Card key={index} className="p-6 text-center bg-green-600/80 backdrop-blur-md border border-green-400/50" hover>
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-green-600 font-light">
                   {index + 1}
                 </span>
               </div>
@@ -241,7 +241,7 @@ const ApplyPage: React.FC = () => {
         </div>
 
         {/* Built for Relationship Architects */}
-        <Card className="p-8 mb-12 bg-gradient-to-r from-emerald/10 to-lavender/10 backdrop-blur-md border border-emerald/50">
+        <Card className="p-8 mb-12 bg-gradient-to-r from-emerald/20 to-lavender/20 backdrop-blur-md border border-emerald/50">
           <h2 className="text-2xl font-light text-center text-white mb-6">
             Built for Relationship Architects
           </h2>
@@ -257,7 +257,7 @@ const ApplyPage: React.FC = () => {
             ].map((role, index) => (
               <span 
                 key={index}
-                className="px-4 py-2 bg-green-500/20 backdrop-blur-sm rounded-full text-white font-light shadow-sm border border-green-400/30"
+                className="px-4 py-2 bg-green-500/40 backdrop-blur-sm rounded-full text-white font-light shadow-sm border border-green-400/50"
               >
                 {role}
               </span>
@@ -268,11 +268,11 @@ const ApplyPage: React.FC = () => {
         {/* Application Form */}
         <Card className="p-8 bg-white/90 backdrop-blur-md border border-emerald/50">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-medium text-white">
+            <h2 className="text-2xl font-medium text-gray-800">
               Apply for Alpha Access
             </h2>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-white">Step {step} of 2</span>
+              <span className="text-sm font-medium text-gray-700">Step {step} of 2</span>
               <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-aqua to-emerald rounded-full transition-all duration-300"
@@ -286,7 +286,7 @@ const ApplyPage: React.FC = () => {
             <form onSubmit={handleNextStep} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                     Name *
                   </label>
                   <input
@@ -301,7 +301,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email *
                   </label>
                   <input
@@ -316,7 +316,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="organization" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
                     Organization / Role *
                   </label>
                   <input
@@ -354,7 +354,7 @@ const ApplyPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="vertical" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="vertical" className="block text-sm font-medium text-gray-700 mb-2">
                     Vertical *
                   </label>
                   <select
@@ -376,7 +376,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="reason" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
                     What goal/s would Rhiz help you complete faster? *
                   </label>
                   <textarea
@@ -391,7 +391,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="features" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="features" className="block text-sm font-medium text-gray-700 mb-2">
                     Are there any features we haven't thought of that you'd like to have?
                   </label>
                   <textarea
@@ -405,7 +405,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="referral" className="block text-sm font-medium text-white mb-2">
+                  <label htmlFor="referral" className="block text-sm font-medium text-gray-700 mb-2">
                     Referral Code (optional)
                   </label>
                   <input
