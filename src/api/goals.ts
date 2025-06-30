@@ -1,19 +1,5 @@
 import { supabase } from './client';
-
-export interface Goal {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  target_date: string;
-  completed: boolean;
-  priority: 'low' | 'medium' | 'high';
-  progress?: number;
-  related_contacts?: number;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { Goal } from '../types';
 
 export const getGoals = async (): Promise<Goal[]> => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -125,3 +111,5 @@ export const subscribeToGoals = (callback: (payload: any) => void) => {
     }, callback)
     .subscribe();
 };
+
+export { type Goal };

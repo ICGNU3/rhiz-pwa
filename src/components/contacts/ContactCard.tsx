@@ -1,66 +1,14 @@
 import React from 'react';
-import { Mail, Phone, MapPin, MessageSquare, Calendar, TrendingUp, TrendingDown, Minus, Star, ExternalLink, MoreVertical } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageSquare, Calendar, Star, ExternalLink, MoreVertical } from 'lucide-react';
 import Button from '../Button';
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company: string;
-  title: string;
-  location?: string;
-  notes?: string;
-  tags: string[];
-  lastContact?: string;
-  trustScore?: number;
-  engagementTrend?: 'up' | 'down' | 'stable';
-  relationshipStrength?: 'strong' | 'medium' | 'weak';
-  mutualConnections?: number;
-  relationshipType?: string;
-}
+import { getTrustScoreColor, getRelationshipColor, getRelationshipTypeColor, getInitials } from '../../utils/helpers';
+import type { Contact } from '../../types';
 
 interface ContactCardProps { 
   contact: Contact; 
 }
 
 export default function ContactCard({ contact }: ContactCardProps) {
-  const getTrustScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-    if (score >= 80) return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20';
-    if (score >= 70) return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
-    return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-  };
-
-  const getEngagementIcon = (trend: string) => {
-    switch (trend) {
-      case 'up': return <TrendingUp className="w-4 h-4 text-green-600" />;
-      case 'down': return <TrendingDown className="w-4 h-4 text-red-600" />;
-      default: return <Minus className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const getRelationshipColor = (strength: string) => {
-    switch (strength) {
-      case 'strong': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200';
-      case 'weak': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200';
-    }
-  };
-
-  const getRelationshipTypeColor = (type: string) => {
-    const colors = {
-      friend: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      colleague: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
-      investor: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      mentor: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-      client: 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400',
-      partner: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400'
-    };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-  };
-
   return (
     <div className="p-6 relative overflow-hidden group">
       {/* Background Pattern */}
@@ -75,10 +23,10 @@ export default function ContactCard({ contact }: ContactCardProps) {
             <div className="relative">
               <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">
-                  {contact.name.charAt(0)}
+                  {getInitials(contact.name)}
                 </span>
               </div>
-              {contact.relationshipStrength === 'strong' && (
+              {contact.relationship_strength === 'strong' && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                   <Star className="w-3 h-3 text-white" />
                 </div>
@@ -102,17 +50,13 @@ export default function ContactCard({ contact }: ContactCardProps) {
         {/* Trust Score and Metrics */}
         <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
           <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getTrustScoreColor(contact.trustScore || 0)}`}>
-              {contact.trustScore}
-            </div>
-            <div className="flex items-center space-x-1">
-              {getEngagementIcon(contact.engagementTrend || 'stable')}
-              <span className="text-xs text-gray-500">Engagement</span>
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${getTrustScoreColor(contact.trust_score || 0)} ${getTrustScoreColor(contact.trust_score || 0).replace('text-', 'bg-').replace('-600', '-100')} dark:bg-opacity-20`}>
+              {contact.trust_score}
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {contact.mutualConnections}
+              {contact.mutual_connections}
             </p>
             <p className="text-xs text-gray-500">Mutual</p>
           </div>
@@ -120,12 +64,12 @@ export default function ContactCard({ contact }: ContactCardProps) {
 
         {/* Relationship Tags */}
         <div className="flex items-center space-x-2 mb-4">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRelationshipColor(contact.relationshipStrength || 'medium')}`}>
-            {contact.relationshipStrength}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRelationshipColor(contact.relationship_strength || 'medium')}`}>
+            {contact.relationship_strength}
           </span>
-          {contact.relationshipType && (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRelationshipTypeColor(contact.relationshipType)}`}>
-              {contact.relationshipType}
+          {contact.relationship_type && (
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRelationshipTypeColor(contact.relationship_type)}`}>
+              {contact.relationship_type}
             </span>
           )}
         </div>
@@ -172,9 +116,9 @@ export default function ContactCard({ contact }: ContactCardProps) {
         )}
 
         {/* Last Contact */}
-        {contact.lastContact && (
+        {contact.last_contact && (
           <p className="text-xs text-gray-500 mb-4">
-            Last contact: {new Date(contact.lastContact).toLocaleDateString()}
+            Last contact: {new Date(contact.last_contact).toLocaleDateString()}
           </p>
         )}
 

@@ -1,27 +1,5 @@
 import { supabase } from './client';
-
-export interface Contact {
-  id: string;
-  user_id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company: string;
-  title: string;
-  location?: string;
-  notes?: string;
-  tags: string[];
-  last_contact?: string;
-  trust_score?: number;
-  engagement_trend?: 'up' | 'down' | 'stable';
-  relationship_strength?: 'strong' | 'medium' | 'weak';
-  mutual_connections?: number;
-  relationship_type?: string;
-  source?: string;
-  enriched?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { Contact } from '../types';
 
 export const getContacts = async (): Promise<Contact[]> => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -130,3 +108,5 @@ export const subscribeToContacts = (callback: (payload: any) => void) => {
     }, callback)
     .subscribe();
 };
+
+export { type Contact };

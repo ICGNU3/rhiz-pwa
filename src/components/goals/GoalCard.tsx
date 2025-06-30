@@ -1,18 +1,8 @@
 import React from 'react';
 import { Target, Calendar, Users, CheckCircle, Zap, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 import Button from '../Button';
-
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  targetDate: string;
-  completed: boolean;
-  priority: 'low' | 'medium' | 'high';
-  progress?: number;
-  relatedContacts?: number;
-  category?: string;
-}
+import { getPriorityColor, getProgressColor, calculateDaysUntilDue, isOverdue } from '../../utils/helpers';
+import type { Goal } from '../../types';
 
 interface GoalCardProps { 
   goal: Goal;
@@ -22,29 +12,8 @@ interface GoalCardProps {
 }
 
 export default function GoalCard({ goal, onToggleComplete, onEdit, isUpdating = false }: GoalCardProps) {
-  const isOverdue = !goal.completed && new Date(goal.targetDate) < new Date();
-  const daysUntilDue = Math.ceil((new Date(goal.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-  
-  const priorityColors = {
-    low: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400 border-emerald-200',
-    medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200',
-    high: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-200'
-  };
-
-  const categoryColors = {
-    'Networking': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200',
-    'Fundraising': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200',
-    'Hiring': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200',
-    'Partnerships': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 border-orange-200',
-    'Growth': 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400 border-pink-200'
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return 'from-green-500 to-emerald-600';
-    if (progress >= 60) return 'from-blue-500 to-indigo-600';
-    if (progress >= 40) return 'from-yellow-500 to-orange-600';
-    return 'from-red-500 to-pink-600';
-  };
+  const goalIsOverdue = isOverdue(goal.target_date, goal.completed);
+  const daysUntilDue = calculateDaysUntilDue(goal.target_date);
 
   return (
     <div className="p-6 relative overflow-hidden">
@@ -66,15 +35,15 @@ export default function GoalCard({ goal, onToggleComplete, onEdit, isUpdating = 
             </div>
             
             <div className="flex items-center space-x-3 mb-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${priorityColors[goal.priority]}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(goal.priority)}`}>
                 {goal.priority.toUpperCase()} PRIORITY
               </span>
               {goal.category && (
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${categoryColors[goal.category as keyof typeof categoryColors]}`}>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200">
                   {goal.category.toUpperCase()}
                 </span>
               )}
-              {isOverdue && (
+              {goalIsOverdue && (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border border-red-200 flex items-center space-x-1">
                   <AlertTriangle className="w-3 h-3" />
                   <span>OVERDUE</span>
@@ -115,11 +84,11 @@ export default function GoalCard({ goal, onToggleComplete, onEdit, isUpdating = 
             {/* Enhanced Metadata */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <Calendar className={`w-5 h-5 ${isOverdue ? 'text-red-500' : 'text-gray-500'}`} />
+                <Calendar className={`w-5 h-5 ${goalIsOverdue ? 'text-red-500' : 'text-gray-500'}`} />
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">DEADLINE</p>
-                  <p className={`text-sm font-semibold ${isOverdue ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
-                    {isOverdue ? 'Overdue' : goal.completed ? 'Completed' : `${daysUntilDue} days left`}
+                  <p className={`text-sm font-semibold ${goalIsOverdue ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
+                    {goalIsOverdue ? 'Overdue' : goal.completed ? 'Completed' : `${daysUntilDue} days left`}
                   </p>
                 </div>
               </div>
@@ -129,7 +98,7 @@ export default function GoalCard({ goal, onToggleComplete, onEdit, isUpdating = 
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">NETWORK</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {goal.relatedContacts} people connected
+                    {goal.related_contacts} people connected
                   </p>
                 </div>
               </div>
