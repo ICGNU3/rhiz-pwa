@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,54 +25,15 @@ import {
   Users,
   Building,
   Moon,
-  Sun
+  Sun,
+  Save,
+  RefreshCw
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
-
-interface UserSettings {
-  profile: {
-    displayName: string;
-    email: string;
-    bio: string;
-    timezone: string;
-    language: string;
-  };
-  notifications: {
-    email: boolean;
-    push: boolean;
-    weekly: boolean;
-    mentions: boolean;
-    goalReminders: boolean;
-    relationshipAlerts: boolean;
-    networkUpdates: boolean;
-    aiInsights: boolean;
-  };
-  integrations: {
-    linkedin: boolean;
-    google: boolean;
-    outlook: boolean;
-    slack: boolean;
-    calendly: boolean;
-    zoom: boolean;
-  };
-  privacy: {
-    profileVisibility: string;
-    contactSharing: boolean;
-    activityTracking: boolean;
-    dataCollection: string;
-    thirdPartyIntegrations: boolean;
-    analyticsOptOut: boolean;
-  };
-  ai: {
-    assistantEnabled: boolean;
-    insightFrequency: string;
-    autoSuggestions: boolean;
-    learningMode: string;
-    personalizedRecommendations: boolean;
-  };
-}
+import ErrorBorder from '../components/ErrorBorder';
+import { getUserSettings, updateUserSettings, UserSettings } from '../api/settings';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
@@ -80,50 +41,24 @@ const Settings: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
   const [showSensitiveData, setShowSensitiveData] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  const [settings, setSettings] = useState<UserSettings>({
-    profile: {
-      displayName: user?.name || '',
-      email: user?.email || '',
-      bio: '',
-      timezone: 'UTC-8',
-      language: 'en'
-    },
-    notifications: {
-      email: true,
-      push: false,
-      weekly: true,
-      mentions: true,
-      goalReminders: true,
-      relationshipAlerts: true,
-      networkUpdates: false,
-      aiInsights: true
-    },
-    integrations: {
-      linkedin: false,
-      google: false,
-      outlook: false,
-      slack: false,
-      calendly: false,
-      zoom: false
-    },
-    privacy: {
-      profileVisibility: 'connections',
-      contactSharing: false,
-      activityTracking: true,
-      dataCollection: 'minimal',
-      thirdPartyIntegrations: true,
-      analyticsOptOut: false
-    },
-    ai: {
-      assistantEnabled: true,
-      insightFrequency: 'daily',
-      autoSuggestions: true,
-      learningMode: 'adaptive',
-      personalizedRecommendations: true
-    }
+  // Local form state for immediate UI updates
+  const [formData, setFormData] = useState<UserSettings | null>(null);
+
+  // Fetch user settings with React Query
+  const { 
+    data: settings, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery({
+    queryKey: ['user-settings'],
+    queryFn: getUserSettings,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Fetch user stats for display
   const { data: userStats, isLoading: statsLoading } = useQuery({
     queryKey: ['user-stats'],
     queryFn: async () => {
@@ -139,27 +74,31 @@ const Settings: React.FC = () => {
         dataExports: 2,
         securityScore: 85
       };
-    }
-  });
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (newSettings: UserSettings) => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      localStorage.setItem('rhiz-user-settings', JSON.stringify(newSettings));
-      return newSettings;
     },
-    onSuccess: () => {
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: updateUserSettings,
+    onSuccess: (updatedSettings) => {
+      queryClient.setQueryData(['user-settings'], updatedSettings);
       queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+      setHasUnsavedChanges(false);
+    },
+    onError: (error) => {
+      console.error('Failed to update settings:', error);
     }
   });
 
+  // Export data mutation
   const exportDataMutation = useMutation({
     mutationFn: async () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const data = {
-        contacts: JSON.parse(localStorage.getItem('rhiz-contacts') || '[]'),
-        goals: JSON.parse(localStorage.getItem('rhiz-goals') || '[]'),
-        settings: settings,
+        profile: formData?.profile,
+        settings: formData,
+        userStats,
         exportDate: new Date().toISOString()
       };
       
@@ -167,36 +106,99 @@ const Settings: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `rhiz-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `rhiz-settings-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
   });
 
-  const handleSettingChange = (section: keyof UserSettings, key: string, value: any) => {
-    const newSettings = {
-      ...settings,
-      [section]: { ...settings[section], [key]: value }
-    };
-    setSettings(newSettings);
-    updateSettingsMutation.mutate(newSettings);
+  // Initialize form data when settings are loaded
+  useEffect(() => {
+    if (settings && !formData) {
+      setFormData(settings);
+    }
+  }, [settings, formData]);
+
+  // Generic handler for updating form data
+  const handleFormChange = <T extends keyof UserSettings>(
+    section: T, 
+    key: keyof UserSettings[T], 
+    value: any
+  ) => {
+    if (!formData) return;
+    
+    setFormData(prev => ({
+      ...prev!,
+      [section]: {
+        ...prev![section],
+        [key]: value
+      }
+    }));
+    setHasUnsavedChanges(true);
   };
 
+  // Handle profile form submission
   const handleProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    if (!formData) return;
+
+    const formDataObj = new FormData(e.currentTarget);
     const profileData = {
-      displayName: formData.get('displayName') as string,
-      email: formData.get('email') as string,
-      bio: formData.get('bio') as string,
-      timezone: formData.get('timezone') as string,
-      language: formData.get('language') as string,
+      displayName: formDataObj.get('displayName') as string,
+      email: formDataObj.get('email') as string,
+      bio: formDataObj.get('bio') as string,
+      timezone: formDataObj.get('timezone') as string,
+      language: formDataObj.get('language') as string,
     };
     
-    const newSettings = { ...settings, profile: profileData };
-    setSettings(newSettings);
-    updateSettingsMutation.mutate(newSettings);
+    const updatedSettings = {
+      ...formData,
+      profile: profileData
+    };
+    
+    setFormData(updatedSettings);
+    updateSettingsMutation.mutate(updatedSettings);
   };
+
+  // Save all settings
+  const handleSaveSettings = () => {
+    if (formData) {
+      updateSettingsMutation.mutate(formData);
+    }
+  };
+
+  // Reset form to original settings
+  const handleResetForm = () => {
+    if (settings) {
+      setFormData(settings);
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  if (isLoading || !formData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        </div>
+        <ErrorBorder 
+          message="Failed to load settings. Please check your connection and try again."
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
 
   const sidebarItems = [
     { id: 'profile', label: 'Profile', icon: User, description: 'Personal information' },
@@ -252,28 +254,47 @@ const Settings: React.FC = () => {
     }
   ];
 
-  if (statsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" className="mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading settings...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header with Save/Reset Actions */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Account Settings
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-            Manage your account preferences, privacy settings, and AI assistant configuration
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Account Settings
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
+                Manage your account preferences, privacy settings, and AI assistant configuration
+              </p>
+            </div>
+            
+            {/* Save/Reset Controls */}
+            {hasUnsavedChanges && (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 text-sm text-amber-600 dark:text-amber-400">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                  <span>Unsaved changes</span>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleResetForm}
+                  icon={RefreshCw}
+                  size="sm"
+                >
+                  Reset
+                </Button>
+                <Button
+                  onClick={handleSaveSettings}
+                  loading={updateSettingsMutation.isPending}
+                  icon={Save}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -387,7 +408,8 @@ const Settings: React.FC = () => {
                           <input
                             name="displayName"
                             type="text"
-                            defaultValue={settings.profile.displayName}
+                            value={formData.profile.displayName}
+                            onChange={(e) => handleFormChange('profile', 'displayName', e.target.value)}
                             className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           />
                         </div>
@@ -399,7 +421,8 @@ const Settings: React.FC = () => {
                           <input
                             name="email"
                             type="email"
-                            defaultValue={settings.profile.email}
+                            value={formData.profile.email}
+                            onChange={(e) => handleFormChange('profile', 'email', e.target.value)}
                             className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           />
                         </div>
@@ -411,7 +434,8 @@ const Settings: React.FC = () => {
                           <textarea
                             name="bio"
                             rows={3}
-                            defaultValue={settings.profile.bio}
+                            value={formData.profile.bio}
+                            onChange={(e) => handleFormChange('profile', 'bio', e.target.value)}
                             placeholder="Tell us about yourself..."
                             className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           />
@@ -424,7 +448,8 @@ const Settings: React.FC = () => {
                             </label>
                             <select
                               name="timezone"
-                              defaultValue={settings.profile.timezone}
+                              value={formData.profile.timezone}
+                              onChange={(e) => handleFormChange('profile', 'timezone', e.target.value)}
                               className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                               <option value="UTC-8">UTC-8 (Pacific)</option>
@@ -440,7 +465,8 @@ const Settings: React.FC = () => {
                             </label>
                             <select
                               name="language"
-                              defaultValue={settings.profile.language}
+                              value={formData.profile.language}
+                              onChange={(e) => handleFormChange('profile', 'language', e.target.value)}
                               className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                               <option value="en">English</option>
@@ -510,7 +536,7 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-                    {Object.entries(settings.notifications).map(([key, value]) => {
+                    {Object.entries(formData.notifications).map(([key, value]) => {
                       const notificationLabels: Record<string, { title: string; desc: string }> = {
                         email: { title: 'Email Notifications', desc: 'Receive updates via email' },
                         push: { title: 'Push Notifications', desc: 'Browser and mobile push notifications' },
@@ -536,7 +562,7 @@ const Settings: React.FC = () => {
                             <input
                               type="checkbox"
                               checked={value}
-                              onChange={(e) => handleSettingChange('notifications', key, e.target.checked)}
+                              onChange={(e) => handleFormChange('notifications', key as keyof typeof formData.notifications, e.target.checked)}
                               className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
@@ -561,7 +587,7 @@ const Settings: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {integrationProviders.map((provider) => {
                       const Icon = provider.icon;
-                      const isConnected = settings.integrations[provider.key as keyof typeof settings.integrations];
+                      const isConnected = formData.integrations[provider.key as keyof typeof formData.integrations];
                       
                       return (
                         <div key={provider.key} className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -591,7 +617,7 @@ const Settings: React.FC = () => {
                             variant={isConnected ? 'outline' : 'primary'}
                             size="sm"
                             disabled={provider.status === 'coming-soon'}
-                            onClick={() => handleSettingChange('integrations', provider.key, !isConnected)}
+                            onClick={() => handleFormChange('integrations', provider.key as keyof typeof formData.integrations, !isConnected)}
                             className="w-full"
                           >
                             {provider.status === 'coming-soon' 
@@ -636,8 +662,8 @@ const Settings: React.FC = () => {
                             </p>
                           </div>
                           <select
-                            value={settings.privacy.profileVisibility}
-                            onChange={(e) => handleSettingChange('privacy', 'profileVisibility', e.target.value)}
+                            value={formData.privacy.profileVisibility}
+                            onChange={(e) => handleFormChange('privacy', 'profileVisibility', e.target.value)}
                             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                           >
                             <option value="private">Private</option>
@@ -659,8 +685,8 @@ const Settings: React.FC = () => {
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={settings.privacy.contactSharing}
-                              onChange={(e) => handleSettingChange('privacy', 'contactSharing', e.target.checked)}
+                              checked={formData.privacy.contactSharing}
+                              onChange={(e) => handleFormChange('privacy', 'contactSharing', e.target.checked)}
                               className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
@@ -679,8 +705,8 @@ const Settings: React.FC = () => {
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={settings.privacy.activityTracking}
-                              onChange={(e) => handleSettingChange('privacy', 'activityTracking', e.target.checked)}
+                              checked={formData.privacy.activityTracking}
+                              onChange={(e) => handleFormChange('privacy', 'activityTracking', e.target.checked)}
                               className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
@@ -772,7 +798,7 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-                    {Object.entries(settings.ai).map(([key, value]) => {
+                    {Object.entries(formData.ai).map(([key, value]) => {
                       const aiLabels: Record<string, { title: string; desc: string; type: 'toggle' | 'select' }> = {
                         assistantEnabled: { 
                           title: 'AI Assistant Enabled', 
@@ -817,7 +843,7 @@ const Settings: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={value as boolean}
-                                onChange={(e) => handleSettingChange('ai', key, e.target.checked)}
+                                onChange={(e) => handleFormChange('ai', key as keyof typeof formData.ai, e.target.checked)}
                                 className="sr-only peer"
                               />
                               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
@@ -825,7 +851,7 @@ const Settings: React.FC = () => {
                           ) : (
                             <select
                               value={value as string}
-                              onChange={(e) => handleSettingChange('ai', key, e.target.value)}
+                              onChange={(e) => handleFormChange('ai', key as keyof typeof formData.ai, e.target.value)}
                               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                             >
                               {key === 'insightFrequency' && (
@@ -928,6 +954,25 @@ const Settings: React.FC = () => {
                     <Button variant="outline" className="w-full justify-start" icon={Download}>
                       System Logs
                     </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Success/Error Messages */}
+              {updateSettingsMutation.isSuccess && (
+                <div className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg shadow-lg">
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4" />
+                    <span className="text-sm font-medium">Settings saved successfully!</span>
+                  </div>
+                </div>
+              )}
+
+              {updateSettingsMutation.isError && (
+                <div className="fixed bottom-4 right-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg shadow-lg">
+                  <div className="flex items-center space-x-2">
+                    <X className="w-4 h-4" />
+                    <span className="text-sm font-medium">Failed to save settings. Please try again.</span>
                   </div>
                 </div>
               )}
