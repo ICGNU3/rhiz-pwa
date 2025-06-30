@@ -87,9 +87,7 @@ if (container) {
   );
 
   // Remove placeholder after render
-  window.addEventListener('load', () => {
-    removePlaceholder();
-  });
+  removePlaceholder();
 }
 
 // Export for install functionality
