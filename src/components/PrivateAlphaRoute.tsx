@@ -31,14 +31,10 @@ const PrivateAlphaRoute: React.FC = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // For now, let all authenticated users through
-  // You can enable alpha checking later by uncommenting the lines below
-  /*
   if (!isAlpha) {
     console.log('User not alpha approved, redirecting to apply');
     return <Navigate to="/apply?pending=true" state={{ from: location }} replace />;
   }
-  */
 
   console.log('User authenticated and approved, allowing access');
   return <Outlet />;
