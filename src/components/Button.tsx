@@ -7,6 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: LucideIcon;
   loading?: boolean;
   children: React.ReactNode;
+  as?: 'button' | 'span';
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -17,14 +18,15 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
+  as = 'button',
   ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
-    secondary: 'bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500',
-    outline: 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-indigo-500',
+    primary: 'bg-gradient-to-r from-aqua via-emerald to-lavender hover:shadow-lg text-white focus:ring-emerald',
+    secondary: 'bg-gradient-to-r from-lavender to-emerald hover:shadow-lg text-white focus:ring-lavender',
+    outline: 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-emerald',
     ghost: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
   };
@@ -35,8 +37,10 @@ const Button: React.FC<ButtonProps> = ({
     lg: 'px-6 py-3 text-base'
   };
 
+  const Component = as;
+
   return (
-    <button
+    <Component
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
@@ -47,7 +51,7 @@ const Button: React.FC<ButtonProps> = ({
         <Icon className="w-4 h-4 mr-2" />
       ) : null}
       {children}
-    </button>
+    </Component>
   );
 };
 
