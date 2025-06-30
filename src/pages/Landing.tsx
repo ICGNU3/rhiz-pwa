@@ -158,7 +158,7 @@ const Landing: React.FC = () => {
                   Intelligent Outreach Automation
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Generate personalized messages, schedule follow-ups, and track engagement—all tuned to your communication style and relationship context.
+                  Generate personalized messages, schedule follow-ups, and track engagement all tuned to your communication style and relationship context.
                 </dd>
               </div>
               <div className="relative pl-16">
@@ -213,7 +213,7 @@ const Landing: React.FC = () => {
                   Smart Data Enrichment
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Automatically merge duplicates, enrich profiles with public data, and track job changes—all with explicit consent.
+                  Automatically merge duplicates, enrich profiles with public data, and track job changes all with explicit consent.
                 </dd>
               </div>
               <div className="relative pl-16">
@@ -251,7 +251,7 @@ const Landing: React.FC = () => {
               Today: Intelligent PWA. Tomorrow: Decentralized Protocol.
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-indigo-100">
-              Rhiz is evolving into a decentralized relationship protocol with token incentives and AI agent support—
+              Rhiz is evolving into a decentralized relationship protocol with token incentives and AI agent support
               powering ecosystems of human and artificial intelligence collaboration.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">

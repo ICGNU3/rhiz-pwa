@@ -143,7 +143,7 @@ const ApplyPage: React.FC = () => {
             </h2>
             
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Thank you—your application is under review. Only 100 Root Members will shape Rhiz's future. 34 spots remaining.
+              Thank you your application is under review. Only 100 Root Members will shape Rhiz's future. 34 spots remaining.
             </p>
 
             <div className="space-y-4">
