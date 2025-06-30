@@ -14,8 +14,8 @@ const Landing: React.FC = () => {
           </div>
           <span className="text-2xl font-bold text-gray-900 dark:text-white">Rhiz</span>
         </div>
-        <Link to="/login">
-          <Button>Get Started</Button>
+        <Link to="/apply">
+          <Button>Apply for Alpha</Button>
         </Link>
       </nav>
 
@@ -35,9 +35,9 @@ const Landing: React.FC = () => {
               built from interaction history and shared goals.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link to="/login">
+              <Link to="/apply">
                 <Button size="lg" icon={ArrowRight}>
-                  Start Building Your Network
+                  Apply for Alpha Access
                 </Button>
               </Link>
             </div>
@@ -174,9 +174,9 @@ const Landing: React.FC = () => {
               and support for autonomous agents—powering whole ecosystems of human and AI collaboration.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link to="/login">
+              <Link to="/apply">
                 <Button variant="outline" size="lg" className="bg-white text-indigo-600 hover:bg-gray-50 border-white">
-                  Start Your Network Journey
+                  Apply for Alpha Access
                 </Button>
               </Link>
             </div>

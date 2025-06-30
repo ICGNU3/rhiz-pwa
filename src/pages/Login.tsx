@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import { Mail, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mail, CheckCircle, ArrowLeft, Network } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +24,25 @@ const Login: React.FC = () => {
         console.error('Auth callback error:', error);
         setError('Authentication failed. Please try again.');
       } else if (data.session) {
-        navigate('/app/dashboard');
+        // Check if user is approved for alpha
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('is_alpha')
+          .eq('id', data.session.user.id)
+          .single();
+          
+        if (userError) {
+          console.error('User data fetch error:', userError);
+          setError('Failed to verify alpha access. Please try again.');
+          return;
+        }
+        
+        if (userData?.is_alpha) {
+          navigate('/app/dashboard');
+        } else {
+          // User is authenticated but not approved for alpha
+          navigate('/apply?pending=true');
+        }
       }
     };
 
@@ -37,7 +55,32 @@ const Login: React.FC = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/app/dashboard');
+      // Check if user is approved for alpha
+      const checkAlphaStatus = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+        
+        const { data, error } = await supabase
+          .from('users')
+          .select('is_alpha')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('User data fetch error:', error);
+          return;
+        }
+        
+        if (data?.is_alpha) {
+          navigate('/app/dashboard');
+        } else {
+          // User is authenticated but not approved for alpha
+          navigate('/apply?pending=true');
+        }
+      };
+      
+      checkAlphaStatus();
     }
   }, [isAuthenticated, navigate]);
 
@@ -69,7 +112,7 @@ const Login: React.FC = () => {
           <div className="text-center">
             <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">R</span>
+                <Network className="w-6 h-6 text-white" />
               </div>
               <span className="text-3xl font-bold text-gray-900 dark:text-white">Rhiz</span>
             </Link>
@@ -127,15 +170,19 @@ const Login: React.FC = () => {
         <div className="text-center">
           <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
             <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">R</span>
+              <Network className="w-6 h-6 text-white" />
             </div>
             <span className="text-3xl font-bold text-gray-900 dark:text-white">Rhiz</span>
           </Link>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Sign in to your account
+            Alpha Members Sign In
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Enter your email to receive a magic link
+            <br />
+            <Link to="/apply" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+              Can't login yet? Apply for early access
+            </Link>
           </p>
         </div>
 

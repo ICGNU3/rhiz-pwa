@@ -9,6 +9,8 @@ interface AuthContextType {
   login: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  isAlpha: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAlpha, setIsAlpha] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -30,6 +34,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session.user);
         setIsAuthenticated(true);
+        
+        // Check if user is alpha and/or admin
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('is_alpha, is_admin')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (!userError && data) {
+          setIsAlpha(data.is_alpha || false);
+          setIsAdmin(data.is_admin || false);
+        }
       }
       
       setLoading(false);
@@ -46,10 +62,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session.user);
           setIsAuthenticated(true);
+          
+          // Check if user is alpha and/or admin
+          const { data, error } = await supabase
+            .from('users')
+            .select('is_alpha, is_admin')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (!error && data) {
+            setIsAlpha(data.is_alpha || false);
+            setIsAdmin(data.is_admin || false);
+          }
         } else {
           setSession(null);
           setUser(null);
           setIsAuthenticated(false);
+          setIsAlpha(false);
+          setIsAdmin(false);
         }
         
         setLoading(false);
@@ -86,7 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session, 
       login, 
       logout, 
-      loading 
+      loading,
+      isAlpha,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>
