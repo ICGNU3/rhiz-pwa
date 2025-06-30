@@ -59,53 +59,85 @@ export const getIntelligenceInsights = async () => {
 };
 
 export const sendChatQuery = async (query: string) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('User not authenticated');
+  }
+
+  // Call the Supabase Edge Function
+  const { data, error } = await supabase.functions.invoke('intelligence-chat', {
+    body: { query },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) {
+    console.error('Edge function error:', error);
+    throw new Error(`AI chat failed: ${error.message}`);
+  }
+
+  return {
+    response: data.response,
+    timestamp: new Date().toISOString(),
+    confidence: data.confidence || 0.8,
+    suggestions: data.suggestions || []
+  };
+};
+
+export const getNetworkInsights = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('User not authenticated');
+  }
+
+  // Call the network insights Edge Function
+  const { data, error } = await supabase.functions.invoke('network-insights', {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) {
+    console.error('Network insights error:', error);
+    throw new Error(`Network insights failed: ${error.message}`);
+  }
+
+  return data;
+};
+
+// Enhanced chat history retrieval
+export const getChatHistory = async (limit = 20) => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('User not authenticated');
   }
 
-  // Store chat query in database
-  await supabase
+  const { data, error } = await supabase
     .from('ai_chat_history')
-    .insert([{
-      user_id: user.id,
-      query,
-      timestamp: new Date().toISOString()
-    }]);
+    .select('*')
+    .eq('user_id', user.id)
+    .order('timestamp', { ascending: false })
+    .limit(limit);
 
-  // Simulate AI processing
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  const responses = {
-    'fundraising': "Based on your network analysis, I've identified 5 key contacts who could help with fundraising. Would you like me to draft introduction requests?",
-    'risk': "I've detected 2 at-risk relationships with 90+ days no contact. I recommend immediate personalized outreach to re-engage these valuable connections.",
-    'opportunities': "Your network shows 12 hidden opportunities: 3 potential partnerships, 4 hiring prospects, and 5 introduction opportunities. Shall I prioritize these by impact?",
-    'introductions': "Perfect introduction opportunity detected: Two contacts in AI/ML space with complementary expertise could create significant value for both parties.",
-    'default': "I've analyzed your network and found several insights. Your relationship strength has grown 15% this month. What would you like to explore?"
-  };
-  
-  const queryLower = query.toLowerCase();
-  let response = responses.default;
-  
-  if (queryLower.includes('fundrais') || queryLower.includes('investor')) response = responses.fundraising;
-  else if (queryLower.includes('risk') || queryLower.includes('90 days')) response = responses.risk;
-  else if (queryLower.includes('opportunit')) response = responses.opportunities;
-  else if (queryLower.includes('introduc')) response = responses.introductions;
-  
-  // Store AI response
-  await supabase
-    .from('ai_chat_history')
-    .insert([{
-      user_id: user.id,
-      query: response,
-      timestamp: new Date().toISOString(),
-      is_ai_response: true
-    }]);
+  if (error) {
+    throw new Error(`Failed to fetch chat history: ${error.message}`);
+  }
 
-  return {
-    response,
-    timestamp: new Date().toISOString(),
-    confidence: Math.random() * 0.3 + 0.7
-  };
+  return data || [];
+};
+
+// Real-time subscription for AI insights
+export const subscribeToAIInsights = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('ai_insights')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'ai_chat_history' 
+    }, callback)
+    .subscribe();
 };

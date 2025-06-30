@@ -1,53 +1,29 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { TrendingUp, Users, Target, Lightbulb, MessageSquare, Brain, Zap, BarChart3 } from 'lucide-react';
+import { TrendingUp, Users, Target, Lightbulb, MessageSquare, Brain, Zap, BarChart3, AlertTriangle, CheckCircle } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import AIQueryInterface from '../components/intelligence/AIQueryInterface';
 import RelationshipAlerts from '../components/intelligence/RelationshipAlerts';
-import { getIntelligenceInsights } from '../api/intelligence';
+import { getIntelligenceInsights, sendChatQuery, getNetworkInsights } from '../api/intelligence';
 
 const Intelligence: React.FC = () => {
-  const [chatHistory, setChatHistory] = useState<Array<{query: string, response: string, timestamp: Date}>>([]);
+  const [activeTab, setActiveTab] = useState('chat');
   
   const { data: insights, isLoading, error, refetch } = useQuery({
     queryKey: ['intelligence-insights'],
     queryFn: getIntelligenceInsights,
   });
 
+  const { data: networkInsights, isLoading: networkLoading } = useQuery({
+    queryKey: ['network-insights'],
+    queryFn: getNetworkInsights,
+  });
+
   const chatMutation = useMutation({
-    mutationFn: async (query: string) => {
-      // Simulate API call to /api/intelligence/chat
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock AI responses based on query content
-      const responses = {
-        'fundraising': "Based on your network analysis, I've identified 5 key contacts who could help with fundraising: Sarah Chen (Stanford AI committee), Michael Rodriguez (former VC), and 3 others with strong investor connections. Would you like me to draft introduction requests?",
-        'risk': "I've detected 2 at-risk relationships: Michael Rodriguez (90 days no contact, engagement down 15%) and Emily Johnson (missed last 2 scheduled calls). I recommend immediate personalized outreach to re-engage these valuable connections.",
-        'opportunities': "Your network shows 12 hidden opportunities: 3 potential partnerships in fintech, 4 hiring prospects for senior roles, and 5 introduction opportunities that could strengthen your ecosystem. Shall I prioritize these by impact?",
-        'introductions': "Perfect introduction opportunity detected: Sarah Chen and Alex Thompson both work in AI/ML space and share 3 mutual connections through your network. Their complementary expertise could create significant value for both parties.",
-        'default': "I've analyzed your network and found several insights. Your relationship strength has grown 15% this month, with particularly strong engagement in the tech sector. I can help you identify specific opportunities, risks, or strategic connections. What would you like to explore?"
-      };
-      
-      const queryLower = query.toLowerCase();
-      let response = responses.default;
-      
-      if (queryLower.includes('fundrais') || queryLower.includes('investor')) response = responses.fundraising;
-      else if (queryLower.includes('risk') || queryLower.includes('90 days')) response = responses.risk;
-      else if (queryLower.includes('opportunit')) response = responses.opportunities;
-      else if (queryLower.includes('introduc')) response = responses.introductions;
-      
-      return response;
-    },
-    onSuccess: (response, query) => {
-      setChatHistory(prev => [...prev, {
-        query,
-        response,
-        timestamp: new Date()
-      }]);
-    }
+    mutationFn: sendChatQuery,
   });
 
   const sendQuery = async (query: string) => {
@@ -79,7 +55,7 @@ const Intelligence: React.FC = () => {
     );
   }
 
-  // Enhanced relationship alerts with more realistic data
+  // Enhanced relationship alerts with real data
   const relationshipAlerts = [
     {
       type: 'opportunity' as const,
@@ -107,15 +83,6 @@ const Intelligence: React.FC = () => {
       priority: 'low' as const,
       timestamp: '3 hours ago',
       category: 'Engagement'
-    },
-    {
-      type: 'opportunity' as const,
-      contact: 'Alex Thompson',
-      message: 'Recently left Sequoia Capital and is now angel investing. Perfect match for your Series A goals.',
-      action: 'Request Meeting',
-      priority: 'high' as const,
-      timestamp: '5 hours ago',
-      category: 'Fundraising'
     }
   ];
 
@@ -158,6 +125,12 @@ const Intelligence: React.FC = () => {
     }
   ];
 
+  const tabs = [
+    { id: 'chat', label: 'AI Chat', icon: MessageSquare, description: 'Interactive AI assistant' },
+    { id: 'insights', label: 'Network Insights', icon: Brain, description: 'AI-generated insights' },
+    { id: 'alerts', label: 'Relationship Alerts', icon: AlertTriangle, description: 'Risk & opportunity alerts' }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -197,7 +170,7 @@ const Intelligence: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="text-center p-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl">
               <div className="text-3xl font-bold text-indigo-600 mb-2">
-                {insights?.networkScore || 85}
+                {networkInsights?.networkScore || insights?.networkScore || 85}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 Network Health Score
@@ -231,74 +204,164 @@ const Intelligence: React.FC = () => {
           </div>
         </Card>
 
-        {/* AI Query Interface */}
-        <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-          <AIQueryInterface onSend={sendQuery} isProcessing={chatMutation.isPending} />
-        </Card>
+        {/* Tab Navigation */}
+        <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 mb-6">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-white dark:bg-gray-600 shadow-sm text-indigo-600 dark:text-indigo-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Relationship Alerts */}
-        <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-          <RelationshipAlerts alerts={relationshipAlerts} />
-        </Card>
+          {/* Tab Content */}
+          {activeTab === 'chat' && (
+            <AIQueryInterface onSend={sendQuery} isProcessing={chatMutation.isPending} />
+          )}
 
-        {/* Intelligence Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {insightCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <Card key={card.title} className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                        <Icon className={`w-5 h-5 ${card.color}`} />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {card.title}
-                      </h3>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${card.color}`}>
-                        {card.metric}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {card.metricLabel}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {card.insights.length > 0 ? (
-                      card.insights.slice(0, 3).map((insight: string, index: number) => (
-                        <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{insight}</p>
+          {activeTab === 'insights' && (
+            <div className="space-y-6">
+              {/* Intelligence Cards Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {insightCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <Card key={card.title} className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-2 rounded-lg ${card.bgColor}`}>
+                              <Icon className={`w-5 h-5 ${card.color}`} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                              {card.title}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold ${card.color}`}>
+                              {card.metric}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {card.metricLabel}
+                            </div>
+                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className={`w-12 h-12 ${card.bgColor} rounded-full flex items-center justify-center mx-auto mb-3`}>
-                          <Icon className={`w-6 h-6 ${card.color}`} />
+
+                        <div className="space-y-3">
+                          {card.insights.length > 0 ? (
+                            card.insights.slice(0, 3).map((insight: string, index: number) => (
+                              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{insight}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className={`w-12 h-12 ${card.bgColor} rounded-full flex items-center justify-center mx-auto mb-3`}>
+                                <Icon className={`w-6 h-6 ${card.color}`} />
+                              </div>
+                              <p className="text-gray-500 dark:text-gray-400 italic text-sm">
+                                Building insights from your network activity...
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 italic text-sm">
-                          Building insights from your network activity...
-                        </p>
+
+                        {card.insights.length > 3 && (
+                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <Button variant="ghost" size="sm" className="w-full">
+                              View All {card.insights.length} Insights
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Network Insights from Edge Function */}
+              {networkInsights && (
+                <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      AI Network Analysis
+                    </h3>
+                    
+                    {networkInsights.insights && networkInsights.insights.length > 0 && (
+                      <div className="space-y-4">
+                        {networkInsights.insights.map((insight: any, index: number) => (
+                          <div key={index} className={`p-4 rounded-lg border ${
+                            insight.impact === 'high' ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' :
+                            insight.impact === 'medium' ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20' :
+                            'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                          }`}>
+                            <div className="flex items-start space-x-3">
+                              <div className={`p-1 rounded ${
+                                insight.impact === 'high' ? 'bg-red-500' :
+                                insight.impact === 'medium' ? 'bg-yellow-500' :
+                                'bg-blue-500'
+                              }`}>
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                                  {insight.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {insight.description}
+                                </p>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                insight.impact === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' :
+                                insight.impact === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                                'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                              }`}>
+                                {insight.impact.toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {networkInsights.recommendations && networkInsights.recommendations.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                          AI Recommendations
+                        </h4>
+                        <div className="space-y-2">
+                          {networkInsights.recommendations.map((rec: string, index: number) => (
+                            <div key={index} className="flex items-center space-x-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{rec}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
+                </Card>
+              )}
+            </div>
+          )}
 
-                  {card.insights.length > 3 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        View All {card.insights.length} Insights
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+          {activeTab === 'alerts' && (
+            <RelationshipAlerts alerts={relationshipAlerts} />
+          )}
+        </Card>
 
         {/* Action Items */}
         <Card className="bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
