@@ -257,7 +257,7 @@ const ApplyPage: React.FC = () => {
             ].map((role, index) => (
               <span 
                 key={index}
-                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-light shadow-sm border border-white/30"
+                className="px-4 py-2 bg-green-500/20 backdrop-blur-sm rounded-full text-white font-light shadow-sm border border-green-400/30"
               >
                 {role}
               </span>
