@@ -24,15 +24,13 @@ const Landing: React.FC = () => {
         <div className="mx-auto max-w-4xl pt-20 pb-32 sm:pt-32 sm:pb-40">
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Turn scattered contacts into an
+              Every vital connection in a
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                intelligent relationship engine
+                single view
               </span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Rhiz syncs your phone, email, and social contacts into one living graph. It deduplicates, 
-              enriches, and visualizes your network so you instantly see who matters most—with trust scores 
-              built from interaction history and shared goals.
+              Rhiz fuses your phone, inbox, and social contacts into a goal-driven graph. It declutters and enriches them with interaction history, sentiment, and shared objectives so you instantly know who to reach and why.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link to="/apply">
