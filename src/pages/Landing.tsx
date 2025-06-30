@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, Brain, Target, Users, Zap, MessageSquare, TrendingUp, Eye, Lightbulb } from 'lucide-react';
 import Button from '../components/Button';
+import LivePreviewSection from '../components/landing/LivePreviewSection';
 
 const Landing: React.FC = () => {
   return (
@@ -120,6 +121,9 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Live Preview Section */}
+      <LivePreviewSection />
 
       {/* Advanced Features */}
       <div className="relative z-10 py-24 sm:py-32 bg-white dark:bg-gray-900">

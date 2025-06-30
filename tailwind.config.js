@@ -58,6 +58,7 @@ export default {
         'slide-up': 'slideUp 0.3s ease-out',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'blob': 'blob 7s infinite',
+        'pan': 'pan 6s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -82,8 +83,22 @@ export default {
             backgroundColor: '#8E44AD' 
           },
         },
+        pan: { 
+          '0%': { transform: 'translateX(0)' }, 
+          '50%': { transform: 'translateX(-50px)' }, 
+          '100%': { transform: 'translateX(0)' } 
+        },
+      },
+      transitionDelay: {
+        '2000': '2000ms',
+        '4000': '4000ms',
       },
     },
   },
   plugins: [],
+  variants: {
+    extend: {
+      animation: ['hover', 'group-hover'],
+    },
+  },
 };
