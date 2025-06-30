@@ -139,8 +139,8 @@ export default function NetworkGraph({
                 <button
                   key={mode}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
-                    viewMode === mode
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                    viewMode === mode 
+                      ? 'bg-indigo-600 text-white shadow-sm' 
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
