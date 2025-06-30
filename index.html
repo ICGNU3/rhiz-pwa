@@ -7,6 +7,12 @@
     <meta name="theme-color" content="#1ABC9C" />
     <meta name="description" content="Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance." />
     
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/OuRhizome Dark CRM Background Removed Background Removed.png" as="image" type="image/png" />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Mont:wght@300&display=swap" as="style" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
     <!-- Apple Touch Icon and PWA Meta Tags -->
     <link rel="apple-touch-icon" href="/OuRhizome Dark CRM Background Removed Background Removed.png" />
     <link rel="mask-icon" href="/OuRhizome Dark CRM Background Removed Background Removed.png" color="#1ABC9C" />
@@ -64,19 +70,61 @@
     <meta name="twitter:image" content="https://rhiz.app/OuRhizome Dark CRM Background Removed Background Removed.png" />
     <meta name="twitter:creator" content="@rhizapp" />
     
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/OuRhizome Dark CRM Background Removed Background Removed.png" as="image" type="image/png" />
-    
     <!-- Security headers -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     
+    <!-- Critical CSS -->
+    <style>
+      /* Critical path CSS */
+      body {
+        margin: 0;
+        font-family: 'Mont', sans-serif;
+        font-weight: 300;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        height: 100vh;
+      }
+      .loading-placeholder {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1ABC9C, #8E44AD);
+        color: white;
+        font-family: 'Mont', sans-serif;
+        font-weight: 300;
+        z-index: 9999;
+      }
+    </style>
+    
     <title>Rhiz - Intelligent Relationship Engine</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Initial loading state to prevent FOUC -->
+      <div class="loading-placeholder">
+        <div style="text-align: center;">
+          <div style="margin-bottom: 20px;">Loading Rhiz...</div>
+          <div style="width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Inline critical animation -->
+    <style>
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
     
     <!-- PWA Install Prompt -->
     <script>
@@ -121,6 +169,28 @@
         console.log('Rhiz PWA was installed');
         // Analytics tracking could go here
       });
+      
+      // Add performance monitoring
+      if ('performance' in window && 'PerformanceObserver' in window) {
+        // Create performance observer
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            // Log LCP, FID, CLS metrics
+            if (entry.entryType === 'largest-contentful-paint') {
+              console.log('LCP:', entry.startTime);
+            }
+            if (entry.entryType === 'first-input') {
+              console.log('FID:', entry.processingStart - entry.startTime);
+            }
+            if (entry.entryType === 'layout-shift') {
+              console.log('CLS:', entry.value);
+            }
+          });
+        });
+        
+        // Observe performance metrics
+        observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift'] });
+      }
     </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Menu, 
@@ -19,12 +19,35 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { deferredPrompt } from '../main';
+import usePrefetchRoute from '../hooks/usePrefetchRoute';
+import LoadingScreen from './LoadingScreen';
+
+// Lazy load the sidebar content to improve initial load time
+const SidebarContent = lazy(() => import('./SidebarContent'));
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const location = useLocation();
+
+  // Prefetch the most common routes
+  usePrefetchRoute('/app/dashboard');
+  usePrefetchRoute('/app/contacts');
+  usePrefetchRoute('/app/goals');
+
+  // Memoize the toggle function to prevent unnecessary re-renders
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+    }
+  };
 
   const navigation = [
     { name: 'Dashboard', href: '/app/dashboard', icon: Home, description: 'Network overview & insights' },
@@ -37,26 +60,23 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Settings', href: '/app/settings', icon: Settings, description: 'Account preferences' },
   ];
 
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User response to the install prompt: ${outcome}`);
-    }
-  };
-
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans font-light">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg transform ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0`}>
+      {/* Sidebar - with optimized rendering */}
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg transform ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0 will-change-transform`}
+      >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             <img 
               src="/OuRhizome Dark CRM Background Removed Background Removed.png" 
               alt="Rhiz Logo" 
               className="w-8 h-8"
+              width="32"
+              height="32"
+              loading="eager"
             />
             <div>
               <span className="text-xl font-light text-gray-900 dark:text-white">Rhiz</span>
@@ -64,96 +84,26 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
           </div>
           <button
-            onClick={() => setSidebarOpen(false)}
+            onClick={toggleSidebar}
             className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center px-3 py-3 text-sm font-light rounded-lg transition-all duration-200 group ${
-                  isActive
-                    ? 'bg-gradient-to-r from-aqua to-emerald text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`} />
-                <div className="flex-1">
-                  <div className={`font-light ${isActive ? 'text-white' : ''}`}>{item.name}</div>
-                  <div className={`text-xs font-light ${isActive ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {item.description}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* AI Assistant Quick Access */}
-        <div className="px-4 mb-4">
-          <Link
-            to="/app/intelligence"
-            className="flex items-center px-3 py-3 text-sm font-light text-white bg-gradient-to-r from-lavender to-emerald rounded-lg hover:shadow-lg transition-all duration-200"
-          >
-            <MessageSquare className="w-5 h-5 mr-3" />
-            <div>
-              <div className="font-light">Ask AI Assistant</div>
-              <div className="text-xs font-light text-white/80">Get network insights</div>
-            </div>
-          </Link>
-        </div>
-
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-light text-gray-600 dark:text-gray-400">Theme</span>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              {theme === 'light' ? (
-                <Moon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              ) : (
-                <Sun className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              )}
-            </button>
-          </div>
-          
-          <button
-            onClick={handleInstall}
-            className="w-full flex items-center justify-center px-3 py-2 text-sm font-light text-aqua bg-aqua/10 rounded-lg hover:bg-aqua/20 transition-colors mb-4"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Install App
-          </button>
-
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="w-8 h-8 bg-gradient-to-br from-aqua to-emerald rounded-full flex items-center justify-center">
-              <span className="text-white font-light text-sm">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-light text-gray-900 dark:text-white truncate">
-                {user?.name}
-              </p>
-              <button
-                onClick={logout}
-                className="text-xs font-light text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={<div className="p-6 text-center">Loading navigation...</div>}>
+          <SidebarContent 
+            navigation={navigation} 
+            location={location} 
+            toggleSidebar={toggleSidebar}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            user={user}
+            logout={logout}
+            handleInstall={handleInstall}
+          />
+        </Suspense>
       </div>
 
       {/* Main content */}
@@ -162,8 +112,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between h-16 px-6">
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={toggleSidebar}
               className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Open sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -177,11 +128,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
       </div>
 
-      {/* Sidebar overlay */}
+      {/* Sidebar overlay - with optimized rendering */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity lg:hidden z-40"
-          onClick={() => setSidebarOpen(false)}
+          onClick={toggleSidebar}
+          aria-hidden="true"
         />
       )}
     </div>

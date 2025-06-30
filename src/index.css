@@ -9,3 +9,29 @@
     @apply font-light;
   }
 }
+
+/* Preload critical styles */
+.preload-critical {
+  display: none;
+}
+
+/* Optimize animations */
+@layer utilities {
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}
+
+/* Reduce layout shifts */
+img, svg {
+  @apply transform-gpu;
+}
+
+/* Optimize rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

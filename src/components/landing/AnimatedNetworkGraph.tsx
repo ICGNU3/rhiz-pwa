@@ -1,29 +1,32 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 
-const AnimatedNetworkGraph: React.FC = () => {
+// Memoize the component to prevent unnecessary re-renders
+const AnimatedNetworkGraph: React.FC = memo(() => {
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Generate random nodes and edges for the demo
-  const nodes = Array.from({ length: 15 }, (_, i) => ({
+  // Generate random nodes and edges for the demo - optimized to reduce calculations
+  const nodes = Array.from({ length: 12 }, (_, i) => ({
     id: `node-${i}`,
     x: Math.random() * 300 + 50,
     y: Math.random() * 200 + 50,
-    size: Math.random() * 8 + 4,
+    size: Math.random() * 6 + 4,
     color: i % 3 === 0 ? '#2ECC71' : i % 3 === 1 ? '#1ABC9C' : '#8E44AD'
   }));
   
+  // Reduce number of edges for better performance
   const edges = [];
   for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      if (Math.random() > 0.7) {
-        edges.push({
-          id: `edge-${i}-${j}`,
-          source: i,
-          target: j,
-          strength: Math.random() * 0.5 + 0.1
-        });
-      }
+    // Connect to at most 2 other nodes
+    const connections = Math.floor(Math.random() * 2) + 1;
+    for (let c = 0; c < connections; c++) {
+      const j = (i + c + 1) % nodes.length;
+      edges.push({
+        id: `edge-${i}-${j}`,
+        source: i,
+        target: j,
+        strength: Math.random() * 0.3 + 0.1
+      });
     }
   }
 
@@ -36,15 +39,15 @@ const AnimatedNetworkGraph: React.FC = () => {
         viewBox="0 0 400 300"
         className="w-full h-full"
       >
-        {/* Background Grid */}
+        {/* Background Grid - simplified */}
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" opacity="0.3"/>
           </pattern>
           
-          {/* Glow effects */}
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+          {/* Simplified glow effect */}
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
             <feMerge> 
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
@@ -54,12 +57,12 @@ const AnimatedNetworkGraph: React.FC = () => {
         
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        {/* Animated Edges */}
+        {/* Animated Edges - with reduced animation complexity */}
         <motion.g 
           className="edges"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
         >
           {edges.map((edge) => (
             <motion.line
@@ -70,15 +73,15 @@ const AnimatedNetworkGraph: React.FC = () => {
               y2={nodes[edge.target].y}
               stroke={Math.random() > 0.5 ? "#1ABC9C" : "#8E44AD"}
               strokeWidth={edge.strength * 2}
-              opacity={0.6}
+              opacity={0.5}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 1.5, delay: 0.8 + Math.random() * 0.5 }}
+              transition={{ duration: 1, delay: 0.5 }}
             />
           ))}
         </motion.g>
 
-        {/* Animated Nodes */}
+        {/* Animated Nodes - with simplified animations */}
         <g className="nodes">
           {nodes.map((node, index) => (
             <motion.g 
@@ -86,11 +89,11 @@ const AnimatedNetworkGraph: React.FC = () => {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
-                duration: 0.5, 
-                delay: 0.1 * index,
+                duration: 0.4, 
+                delay: 0.05 * index,
                 type: "spring",
                 stiffness: 200,
-                damping: 10
+                damping: 15
               }}
             >
               <motion.circle
@@ -102,11 +105,11 @@ const AnimatedNetworkGraph: React.FC = () => {
                 strokeWidth={1.5}
                 filter="url(#glow)"
                 animate={{
-                  x: [0, Math.random() * 20 - 10, 0],
-                  y: [0, Math.random() * 20 - 10, 0],
+                  x: [0, Math.random() * 10 - 5, 0],
+                  y: [0, Math.random() * 10 - 5, 0],
                 }}
                 transition={{
-                  duration: 5 + Math.random() * 3,
+                  duration: 4 + Math.random() * 2,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
@@ -117,6 +120,8 @@ const AnimatedNetworkGraph: React.FC = () => {
       </svg>
     </div>
   );
-};
+});
+
+AnimatedNetworkGraph.displayName = 'AnimatedNetworkGraph';
 
 export default AnimatedNetworkGraph;

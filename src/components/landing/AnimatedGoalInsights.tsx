@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Target, Users, Lightbulb } from 'lucide-react';
 
-const AnimatedGoalInsights: React.FC = () => {
+// Memoize the component to prevent unnecessary re-renders
+const AnimatedGoalInsights: React.FC = memo(() => {
   const insights = [
     {
       title: 'Smart Recommendation',
@@ -30,28 +31,29 @@ const AnimatedGoalInsights: React.FC = () => {
     }
   ];
 
+  // Simplified animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.3
+        staggerChildren: 0.2
       }
     }
   };
 
   const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
   };
 
   return (
     <div className="w-full h-full p-4 bg-white dark:bg-gray-800 overflow-hidden">
       <motion.div 
         className="flex items-center space-x-2 mb-4"
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
         <div className="p-1.5 bg-gradient-to-r from-aqua to-emerald rounded-md">
           <Lightbulb className="w-4 h-4 text-white" />
@@ -74,7 +76,7 @@ const AnimatedGoalInsights: React.FC = () => {
               key={index} 
               className={`p-3 rounded-lg ${insight.bgColor} border border-gray-100 dark:border-gray-700`}
               variants={item}
-              whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
             >
               <div className="flex items-start space-x-3">
                 <div className={`p-1.5 rounded-md ${insight.bgColor}`}>
@@ -96,9 +98,9 @@ const AnimatedGoalInsights: React.FC = () => {
 
       <motion.div
         className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-r from-aqua/10 to-emerald/10 rounded-b-xl"
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2, duration: 0.5 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
       >
         <div className="flex items-center justify-center space-x-1">
           <Lightbulb className="w-3 h-3 text-emerald" />
@@ -109,6 +111,8 @@ const AnimatedGoalInsights: React.FC = () => {
       </motion.div>
     </div>
   );
-};
+});
+
+AnimatedGoalInsights.displayName = 'AnimatedGoalInsights';
 
 export default AnimatedGoalInsights;

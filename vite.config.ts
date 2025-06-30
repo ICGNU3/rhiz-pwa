@@ -19,7 +19,7 @@ export default defineConfig({
         name: 'Rhiz - Intelligent Relationship Engine',
         short_name: 'Rhiz',
         description: 'Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance.',
-        theme_color: '#6366F1',
+        theme_color: '#1ABC9C',
         background_color: '#0F172A',
         display: 'standalone',
         orientation: 'portrait-primary',
@@ -157,5 +157,41 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
+  },
+  build: {
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    // Split chunks for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'framer-motion': ['framer-motion'],
+          'supabase': ['@supabase/supabase-js'],
+          'tanstack-query': ['@tanstack/react-query'],
+          'lucide': ['lucide-react']
+        }
+      }
+    },
+    // Reduce chunk size warnings
+    chunkSizeWarningLimit: 1000,
+    // Generate source maps for production
+    sourcemap: false
+  },
+  // Enable CSS code splitting
+  css: {
+    devSourcemap: false
+  },
+  // Improve server performance
+  server: {
+    hmr: {
+      overlay: false
+    }
   }
 });

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Star, TrendingUp, MessageSquare } from 'lucide-react';
 
-const AnimatedContactStats: React.FC = () => {
+// Memoize the component to prevent unnecessary re-renders
+const AnimatedContactStats: React.FC = memo(() => {
   const stats = [
     {
       title: 'Total Contacts',
@@ -34,19 +35,20 @@ const AnimatedContactStats: React.FC = () => {
     }
   ];
 
+  // Simplified animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
+        staggerChildren: 0.15
       }
     }
   };
 
   const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
   };
 
   return (
@@ -64,7 +66,7 @@ const AnimatedContactStats: React.FC = () => {
               key={index} 
               className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               variants={item}
-              whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+              whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
             >
               <div className="flex items-center space-x-2">
                 <div className={`p-1.5 rounded-md ${stat.bgColor}`}>
@@ -85,16 +87,16 @@ const AnimatedContactStats: React.FC = () => {
       </motion.div>
 
       <motion.div
-        className="mt-4 space-y-2"
+        className="mt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
       >
         <motion.div 
           className="flex items-center space-x-3 p-3 bg-gradient-to-r from-aqua/10 to-emerald/10 rounded-lg"
-          initial={{ x: -50, opacity: 0 }}
+          initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
+          transition={{ delay: 1, duration: 0.4 }}
         >
           <div className="w-8 h-8 bg-gradient-to-br from-aqua to-emerald rounded-full flex items-center justify-center">
             <span className="text-white text-xs font-light">JD</span>
@@ -115,9 +117,9 @@ const AnimatedContactStats: React.FC = () => {
 
       <motion.div
         className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-r from-aqua/10 to-emerald/10 rounded-b-xl"
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+        transition={{ delay: 1.2, duration: 0.4 }}
       >
         <div className="flex items-center justify-center space-x-1">
           <TrendingUp className="w-3 h-3 text-emerald" />
@@ -128,6 +130,8 @@ const AnimatedContactStats: React.FC = () => {
       </motion.div>
     </div>
   );
-};
+});
+
+AnimatedContactStats.displayName = 'AnimatedContactStats';
 
 export default AnimatedContactStats;

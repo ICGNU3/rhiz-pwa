@@ -33,29 +33,53 @@ window.addEventListener('beforeinstallprompt', (e) => {
   }
 });
 
-// Create a client
+// Create a client with optimized settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1, // Reduce retries to improve performance
+      refetchOnWindowFocus: false, // Disable refetch on window focus
+      refetchOnReconnect: false, // Disable refetch on reconnect
     },
   },
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <LoadingProvider>
-            <App />
-          </LoadingProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </StrictMode>
-);
+// Preload critical resources
+const preloadImages = () => {
+  const images = [
+    '/OuRhizome Dark CRM Background Removed Background Removed.png'
+  ];
+  
+  images.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+};
+
+// Execute preloading
+preloadImages();
+
+// Create root with error boundary
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  
+  root.render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <LoadingProvider>
+              <App />
+            </LoadingProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </StrictMode>
+  );
+}
 
 // Export for install functionality
 export { deferredPrompt };

@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import AnimatedNetworkGraph from './AnimatedNetworkGraph';
-import AnimatedGoalInsights from './AnimatedGoalInsights';
-import AnimatedContactStats from './AnimatedContactStats';
+
+// Lazy load the animated components
+const AnimatedNetworkGraph = lazy(() => import('./AnimatedNetworkGraph'));
+const AnimatedGoalInsights = lazy(() => import('./AnimatedGoalInsights'));
+const AnimatedContactStats = lazy(() => import('./AnimatedContactStats'));
+
+// Placeholder component for lazy-loaded content
+const PlaceholderBox = () => (
+  <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 animate-pulse">
+    <div className="text-gray-400 dark:text-gray-600">Loading...</div>
+  </div>
+);
 
 const LivePreviewSection: React.FC = () => {
   return (
@@ -26,7 +35,9 @@ const LivePreviewSection: React.FC = () => {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             whileHover={{ scale: 1.03 }}
           >
-            <AnimatedNetworkGraph />
+            <Suspense fallback={<PlaceholderBox />}>
+              <AnimatedNetworkGraph />
+            </Suspense>
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-white/50 dark:bg-black/50 p-2 rounded-b-xl"
               initial={{ y: 20, opacity: 0 }}
@@ -47,7 +58,9 @@ const LivePreviewSection: React.FC = () => {
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
             whileHover={{ scale: 1.03 }}
           >
-            <AnimatedGoalInsights />
+            <Suspense fallback={<PlaceholderBox />}>
+              <AnimatedGoalInsights />
+            </Suspense>
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-white/50 dark:bg-black/50 p-2 rounded-b-xl"
               initial={{ y: 20, opacity: 0 }}
@@ -68,7 +81,9 @@ const LivePreviewSection: React.FC = () => {
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
             whileHover={{ scale: 1.03 }}
           >
-            <AnimatedContactStats />
+            <Suspense fallback={<PlaceholderBox />}>
+              <AnimatedContactStats />
+            </Suspense>
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-white/50 dark:bg-black/50 p-2 rounded-b-xl"
               initial={{ y: 20, opacity: 0 }}
