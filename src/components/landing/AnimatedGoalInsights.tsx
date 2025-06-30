@@ -95,20 +95,6 @@ const AnimatedGoalInsights: React.FC = memo(() => {
           );
         })}
       </motion.div>
-
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-r from-aqua/10 to-emerald/10 rounded-b-xl"
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.4 }}
-      >
-        <div className="flex items-center justify-center space-x-1">
-          <Lightbulb className="w-3 h-3 text-emerald" />
-          <p className="text-xs text-gray-700 dark:text-gray-300 font-light">
-            AI-powered goal recommendations
-          </p>
-        </div>
-      </motion.div>
     </div>
   );
 });

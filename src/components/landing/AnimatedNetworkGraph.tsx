@@ -202,19 +202,6 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
           />
         ))}
       </svg>
-      
-      {/* Overlay text */}
-      <motion.div 
-        className="absolute bottom-0 left-0 right-0 bg-white/30 dark:bg-black/30 backdrop-blur-sm p-2 rounded-b-xl"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
-      >
-        <span className="text-sm font-medium text-gray-900 dark:text-white flex justify-center items-center space-x-1">
-          <span className="w-2 h-2 bg-emerald rounded-full animate-pulse"></span>
-          <span>Intelligent Network Mapping</span>
-        </span>
-      </motion.div>
     </div>
   );
 });
