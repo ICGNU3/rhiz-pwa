@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LoadingProvider } from './hooks/useLoadingContext';
 import App from './App';
 import './index.css';
 
@@ -47,7 +48,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          <LoadingProvider>
+            <App />
+          </LoadingProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

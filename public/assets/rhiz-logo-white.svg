@@ -1,0 +1,16 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="95" stroke="white" stroke-width="5"/>
+  <path d="M100 30C100 30 85 50 85 70C85 90 100 110 100 130C100 150 85 170 85 170" stroke="white" stroke-width="5"/>
+  <path d="M100 30C100 30 115 50 115 70C115 90 100 110 100 130C100 150 115 170 115 170" stroke="white" stroke-width="5"/>
+  <path d="M70 60C70 60 85 70 100 70C115 70 130 60 130 60" stroke="white" stroke-width="5"/>
+  <path d="M70 140C70 140 85 130 100 130C115 130 130 140 130 140" stroke="white" stroke-width="5"/>
+  <path d="M60 100H140" stroke="white" stroke-width="5"/>
+  <path d="M75 45L85 55" stroke="white" stroke-width="5"/>
+  <path d="M125 45L115 55" stroke="white" stroke-width="5"/>
+  <path d="M75 155L85 145" stroke="white" stroke-width="5"/>
+  <path d="M125 155L115 145" stroke="white" stroke-width="5"/>
+  <path d="M100 30V10" stroke="white" stroke-width="5"/>
+  <path d="M85 10H115" stroke="white" stroke-width="5"/>
+  <path d="M90 5L110 5" stroke="white" stroke-width="5"/>
+  <path d="M95 0H105" stroke="white" stroke-width="5"/>
+</svg>

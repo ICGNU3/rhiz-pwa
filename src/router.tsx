@@ -1,41 +1,61 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import PrivateAlphaRoute from './components/PrivateAlphaRoute';
 import AdminRoute from './components/AdminRoute';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import ApplyPage from './pages/ApplyPage';
-import AdminApplicationsPage from './pages/admin/AdminApplicationsPage';
-import Dashboard from './pages/Dashboard';
-import Goals from './pages/Goals';
-import Contacts from './pages/Contacts';
-import Import from './pages/Import';
-import Intelligence from './pages/Intelligence';
-import Network from './pages/Network';
-import Trust from './pages/Trust';
-import Settings from './pages/Settings';
-import OfflinePage from './pages/OfflinePage';
-import { supabase } from './api/client';
+import LoadingScreen from './components/LoadingScreen';
+
+// Lazy-loaded components
+const Landing = lazy(() => import('./pages/Landing'));
+const Login = lazy(() => import('./pages/Login'));
+const ApplyPage = lazy(() => import('./pages/ApplyPage'));
+const AdminApplicationsPage = lazy(() => import('./pages/admin/AdminApplicationsPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Goals = lazy(() => import('./pages/Goals'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const Import = lazy(() => import('./pages/Import'));
+const Intelligence = lazy(() => import('./pages/Intelligence'));
+const Network = lazy(() => import('./pages/Network'));
+const Trust = lazy(() => import('./pages/Trust'));
+const Settings = lazy(() => import('./pages/Settings'));
+const OfflinePage = lazy(() => import('./pages/OfflinePage'));
 
 const AppRouter: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/apply" element={<ApplyPage />} />
-      <Route path="/offline" element={<OfflinePage />} />
+      <Route path="/" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <Landing />
+        </Suspense>
+      } />
+      <Route path="/login" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <Login />
+        </Suspense>
+      } />
+      <Route path="/apply" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <ApplyPage />
+        </Suspense>
+      } />
+      <Route path="/offline" element={
+        <Suspense fallback={<LoadingScreen />}>
+          <OfflinePage />
+        </Suspense>
+      } />
       
       {/* Admin Routes */}
       <Route path="/app/admin" element={
         <PrivateAlphaRoute>
           <AdminRoute>
             <Layout>
-              <Routes>
-                <Route path="/" element={<Navigate to="/app/admin/applications" replace />} />
-                <Route path="/applications" element={<AdminApplicationsPage />} />
-              </Routes>
+              <Suspense fallback={<LoadingScreen message="Loading admin panel..." />}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/app/admin/applications" replace />} />
+                  <Route path="/applications" element={<AdminApplicationsPage />} />
+                </Routes>
+              </Suspense>
             </Layout>
           </AdminRoute>
         </PrivateAlphaRoute>
@@ -44,14 +64,46 @@ const AppRouter: React.FC = () => {
       {/* App Routes */}
       <Route path="/app" element={<PrivateAlphaRoute><Layout /></PrivateAlphaRoute>}>
         <Route path="" element={<Navigate to="/app/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="goals" element={<Goals />} />
-        <Route path="contacts" element={<Contacts />} />
-        <Route path="import" element={<Import />} />
-        <Route path="intelligence" element={<Intelligence />} />
-        <Route path="network" element={<Network />} />
-        <Route path="trust" element={<Trust />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="dashboard" element={
+          <Suspense fallback={<LoadingScreen message="Loading your dashboard..." />}>
+            <Dashboard />
+          </Suspense>
+        } />
+        <Route path="goals" element={
+          <Suspense fallback={<LoadingScreen message="Loading your goals..." />}>
+            <Goals />
+          </Suspense>
+        } />
+        <Route path="contacts" element={
+          <Suspense fallback={<LoadingScreen message="Loading your contacts..." />}>
+            <Contacts />
+          </Suspense>
+        } />
+        <Route path="import" element={
+          <Suspense fallback={<LoadingScreen message="Preparing import tools..." />}>
+            <Import />
+          </Suspense>
+        } />
+        <Route path="intelligence" element={
+          <Suspense fallback={<LoadingScreen message="Activating AI assistant..." />}>
+            <Intelligence />
+          </Suspense>
+        } />
+        <Route path="network" element={
+          <Suspense fallback={<LoadingScreen message="Mapping your network..." />}>
+            <Network />
+          </Suspense>
+        } />
+        <Route path="trust" element={
+          <Suspense fallback={<LoadingScreen message="Calculating trust metrics..." />}>
+            <Trust />
+          </Suspense>
+        } />
+        <Route path="settings" element={
+          <Suspense fallback={<LoadingScreen message="Loading your settings..." />}>
+            <Settings />
+          </Suspense>
+        } />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />
