@@ -42,7 +42,7 @@ export const getApplications = async (status?: 'pending' | 'approved' | 'rejecte
   
   // Check if user is admin
   const { data: userData, error: userError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single();
@@ -80,7 +80,7 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ap
   
   // Check if user is admin
   const { data: userData, error: userError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single();
@@ -114,7 +114,7 @@ export const updateApplicationStatus = async (applicationId: string, status: 'ap
     
     // Update user's alpha status
     const { error: userUpdateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({ is_alpha: true })
       .eq('email', application.email);
       

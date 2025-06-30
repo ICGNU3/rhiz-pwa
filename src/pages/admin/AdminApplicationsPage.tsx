@@ -36,7 +36,7 @@ const AdminApplicationsPage: React.FC = () => {
       
       // Check if user is admin
       const { data: userData, error: userError } = await supabase
-        .from('users')
+        .from('profiles')
         .select('is_admin')
         .eq('id', user.id)
         .single();
@@ -87,7 +87,7 @@ const AdminApplicationsPage: React.FC = () => {
       
       // 3. Set is_alpha flag for user with this email
       const { error: userUpdateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ is_alpha: true })
         .eq('email', application.email);
         
@@ -202,7 +202,7 @@ const AdminApplicationsPage: React.FC = () => {
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                       statusFilter === status
                         ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'

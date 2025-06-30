@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(session.user);
           setIsAuthenticated(true);
           
-          // Check user status in our users table
+          // Check user status in our profiles table
           await checkUserStatus(session.user.id);
         }
       } catch (error) {
@@ -78,32 +78,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkUserStatus = async (userId: string) => {
     try {
-      // First check if user exists in our users table
+      // Check if user exists in our profiles table
       const { data: userData, error: userError } = await supabase
-        .from('users')
+        .from('profiles')
         .select('is_alpha, is_admin')
         .eq('id', userId)
         .single();
         
       if (userError) {
-        console.log('User not found in users table, checking profiles...');
+        console.log('User not found in profiles table:', userError.message);
         
-        // Check profiles table as fallback
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_alpha, is_admin')
-          .eq('id', userId)
-          .single();
-          
-        if (profileError) {
-          console.log('User not found in profiles table either, setting defaults');
-          setIsAlpha(false);
-          setIsAdmin(false);
-        } else {
-          setIsAlpha(profileData.is_alpha || false);
-          setIsAdmin(profileData.is_admin || false);
+        // Create a new profile for this user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: user.email,
+              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              is_alpha: false,
+              is_admin: false
+            });
+            
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          } else {
+            console.log('Created new profile for user');
+          }
         }
+        
+        setIsAlpha(false);
+        setIsAdmin(false);
       } else {
+        console.log('User found in profiles table:', userData);
         setIsAlpha(userData.is_alpha || false);
         setIsAdmin(userData.is_admin || false);
       }

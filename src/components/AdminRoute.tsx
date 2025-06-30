@@ -31,7 +31,7 @@ const AdminRoute: React.FC = () => {
         }
         
         const { data, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select('is_admin')
           .eq('id', user.id)
           .single();
