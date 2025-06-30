@@ -8,6 +8,7 @@ import Button from '../components/Button';
 import Spinner from '../components/Spinner';
 import ContactForm from '../components/contacts/ContactForm';
 import ContactSearch from '../components/contacts/ContactSearch';
+import { createContact } from '../api/contacts';
 
 interface ImportResult {
   success: number;
@@ -48,6 +49,7 @@ const Import: React.FC = () => {
   const [relationshipFilter, setRelationshipFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [file, setFile] = useState<File | null>(null);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -57,26 +59,74 @@ const Import: React.FC = () => {
       setImporting(true);
       setImportProgress(0);
       
-      // Simulate processing with progress updates
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        setImportProgress(i);
+      const results = [];
+      const errors = [];
+      let duplicates = 0;
+      let enriched = 0;
+
+      // Process contacts one by one with progress updates
+      for (let i = 0; i < contacts.length; i++) {
+        try {
+          const contact = contacts[i];
+          
+          // Simulate AI enrichment
+          const isEnriched = Math.random() > 0.3;
+          if (isEnriched) enriched++;
+
+          const enhancedContact = {
+            ...contact,
+            trust_score: isEnriched ? Math.floor(Math.random() * 30) + 70 : undefined,
+            engagement_trend: isEnriched ? ['up', 'down', 'stable'][Math.floor(Math.random() * 3)] : undefined,
+            relationship_strength: isEnriched ? ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] : undefined,
+            mutual_connections: isEnriched ? Math.floor(Math.random() * 15) + 1 : 0,
+            relationship_type: contact.relationship_type || ['colleague', 'friend', 'client', 'partner'][Math.floor(Math.random() * 4)],
+            source: 'import',
+            enriched: isEnriched
+          };
+
+          await createContact(enhancedContact);
+          results.push(enhancedContact);
+          
+          // Update progress
+          setImportProgress(Math.round(((i + 1) / contacts.length) * 100));
+          
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error('Error importing contact:', error);
+          errors.push(`Failed to import ${contacts[i].name}: ${error}`);
+        }
       }
       
-      const existingContacts = JSON.parse(localStorage.getItem('rhiz-contacts') || '[]');
-      const updatedContacts = [...existingContacts, ...contacts];
-      localStorage.setItem('rhiz-contacts', JSON.stringify(updatedContacts));
-      
-      return contacts;
+      return { results, errors, duplicates, enriched };
     },
-    onSuccess: (contacts) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['network-data'] });
       setImporting(false);
       
-      // Navigate to contacts page after successful import
-      setTimeout(() => {
-        navigate('/app/contacts');
-      }, 2000);
+      setResult({
+        success: data.results.length,
+        errors: data.errors,
+        data: data.results,
+        duplicates: data.duplicates,
+        enriched: data.enriched
+      });
+
+      setImportStats({
+        totalProcessed: parsedData.length,
+        newContacts: data.results.length,
+        duplicatesFound: data.duplicates,
+        dataEnriched: data.enriched,
+        trustScoresCalculated: data.results.filter(c => c.trust_score).length
+      });
+
+      setCurrentStep(4);
+    },
+    onError: (error) => {
+      console.error('Import failed:', error);
+      setImporting(false);
     }
   });
 
@@ -84,11 +134,14 @@ const Import: React.FC = () => {
   const optionalFields = ['phone', 'location', 'tags', 'notes'];
   const allFields = [...requiredFields, ...optionalFields];
 
-  const handleFileUpload = (file: File) => {
-    if (!file) return;
+  const handleFileUpload = (uploadedFile: File) => {
+    if (!uploadedFile) return;
 
-    Papa.parse(file, {
+    setFile(uploadedFile);
+    
+    Papa.parse(uploadedFile, {
       header: true,
+      skipEmptyLines: true,
       complete: (results) => {
         try {
           const headers = Object.keys(results.data[0] || {});
@@ -101,12 +154,12 @@ const Import: React.FC = () => {
             const lowerHeader = header.toLowerCase();
             if (lowerHeader.includes('name') || lowerHeader.includes('full')) autoMapping[header] = 'name';
             else if (lowerHeader.includes('email') || lowerHeader.includes('mail')) autoMapping[header] = 'email';
-            else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile')) autoMapping[header] = 'phone';
-            else if (lowerHeader.includes('company') || lowerHeader.includes('organization')) autoMapping[header] = 'company';
-            else if (lowerHeader.includes('title') || lowerHeader.includes('position') || lowerHeader.includes('job')) autoMapping[header] = 'title';
+            else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile') || lowerHeader.includes('tel')) autoMapping[header] = 'phone';
+            else if (lowerHeader.includes('company') || lowerHeader.includes('organization') || lowerHeader.includes('org')) autoMapping[header] = 'company';
+            else if (lowerHeader.includes('title') || lowerHeader.includes('position') || lowerHeader.includes('job') || lowerHeader.includes('role')) autoMapping[header] = 'title';
             else if (lowerHeader.includes('location') || lowerHeader.includes('city') || lowerHeader.includes('address')) autoMapping[header] = 'location';
-            else if (lowerHeader.includes('tag') || lowerHeader.includes('category')) autoMapping[header] = 'tags';
-            else if (lowerHeader.includes('note') || lowerHeader.includes('comment')) autoMapping[header] = 'notes';
+            else if (lowerHeader.includes('tag') || lowerHeader.includes('category') || lowerHeader.includes('skill')) autoMapping[header] = 'tags';
+            else if (lowerHeader.includes('note') || lowerHeader.includes('comment') || lowerHeader.includes('description')) autoMapping[header] = 'notes';
           });
           
           setColumnMapping(autoMapping);
@@ -155,10 +208,10 @@ const Import: React.FC = () => {
         location: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'location') || ''] || '',
         notes: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'notes') || ''] || '',
         tags: (row[Object.keys(columnMapping).find(key => columnMapping[key] === 'tags') || ''] || '').split(',').map(tag => tag.trim()).filter(Boolean),
-        trustScore: Math.floor(Math.random() * 30) + 70,
-        relationshipStrength: ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)],
-        mutualConnections: Math.floor(Math.random() * 10) + 1,
-        relationshipType: ['colleague', 'friend', 'client'][Math.floor(Math.random() * 3)]
+        trust_score: Math.floor(Math.random() * 30) + 70,
+        relationship_strength: ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)],
+        mutual_connections: Math.floor(Math.random() * 10) + 1,
+        relationship_type: ['colleague', 'friend', 'client'][Math.floor(Math.random() * 3)]
       };
       return contact;
     });
@@ -170,12 +223,6 @@ const Import: React.FC = () => {
   const processImport = () => {
     const validContacts = [];
     const errors = [];
-    let duplicates = 0;
-    let enriched = 0;
-
-    const existingEmails = new Set(
-      JSON.parse(localStorage.getItem('rhiz-contacts') || '[]').map((c: any) => c.email)
-    );
 
     parsedData.forEach((row, index) => {
       const mappedContact: any = {};
@@ -205,46 +252,22 @@ const Import: React.FC = () => {
         return;
       }
 
-      // Check for duplicates
-      if (existingEmails.has(mappedContact.email)) {
-        duplicates++;
-        return;
-      }
-
-      // Simulate data enrichment
-      const isEnriched = Math.random() > 0.3;
-      if (isEnriched) enriched++;
-
-      validContacts.push({
-        ...mappedContact,
-        id: `imported-${Date.now()}-${index}`,
-        lastContact: null,
-        trustScore: isEnriched ? Math.floor(Math.random() * 30) + 70 : undefined,
-        relationshipStrength: isEnriched ? ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] : undefined,
-        source: 'import',
-        enriched: isEnriched
-      });
+      validContacts.push(mappedContact);
     });
+
+    if (errors.length > 0) {
+      setResult({
+        success: 0,
+        errors,
+        data: [],
+        duplicates: 0,
+        enriched: 0
+      });
+      setCurrentStep(4);
+      return;
+    }
 
     importMutation.mutate(validContacts);
-
-    setResult({
-      success: validContacts.length,
-      errors,
-      data: validContacts,
-      duplicates,
-      enriched
-    });
-
-    setImportStats({
-      totalProcessed: parsedData.length,
-      newContacts: validContacts.length,
-      duplicatesFound: duplicates,
-      dataEnriched: enriched,
-      trustScoresCalculated: validContacts.filter(c => c.trustScore).length
-    });
-
-    setCurrentStep(4);
   };
 
   const downloadTemplate = () => {
@@ -264,6 +287,7 @@ const Import: React.FC = () => {
 
   const resetImport = () => {
     setCurrentStep(1);
+    setFile(null);
     setParsedData([]);
     setCsvHeaders([]);
     setColumnMapping({});
@@ -625,18 +649,18 @@ const Import: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       <div className="text-center">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {contact.trustScore}
+                          {contact.trust_score}
                         </div>
                         <div className="text-xs text-gray-500">Trust Score</div>
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        contact.relationshipStrength === 'strong' 
+                        contact.relationship_strength === 'strong' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : contact.relationshipStrength === 'medium'
+                          : contact.relationship_strength === 'medium'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                           : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                       }`}>
-                        {contact.relationshipStrength}
+                        {contact.relationship_strength}
                       </div>
                     </div>
                   </div>
