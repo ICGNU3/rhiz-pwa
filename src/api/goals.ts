@@ -1,65 +1,127 @@
-interface Goal {
+import { supabase } from './client';
+
+export interface Goal {
   id: string;
+  user_id: string;
   title: string;
   description: string;
-  targetDate: string;
+  target_date: string;
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
+  progress?: number;
+  related_contacts?: number;
+  category?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const getGoals = async (): Promise<Goal[]> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const goals = localStorage.getItem('rhiz-goals');
-  if (goals) {
-    return JSON.parse(goals);
+  if (!user) {
+    throw new Error('User not authenticated');
   }
-  
-  // Return mock data if no goals exist
-  const mockGoals: Goal[] = [
-    {
-      id: '1',
-      title: 'Connect with 10 industry leaders',
-      description: 'Build relationships with key figures in the tech industry',
-      targetDate: '2025-03-01',
-      completed: false,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: 'Attend 3 networking events',
-      description: 'Participate in professional networking events this quarter',
-      targetDate: '2025-02-15',
-      completed: true,
-      priority: 'medium'
-    }
-  ];
-  
-  localStorage.setItem('rhiz-goals', JSON.stringify(mockGoals));
-  return mockGoals;
+
+  const { data, error } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch goals: ${error.message}`);
+  }
+
+  // Enhance with mock progress data
+  const enhancedGoals = (data || []).map(goal => ({
+    ...goal,
+    progress: goal.progress || Math.floor(Math.random() * 100),
+    related_contacts: goal.related_contacts || Math.floor(Math.random() * 5) + 1,
+    category: goal.category || ['Networking', 'Fundraising', 'Hiring', 'Partnerships', 'Growth'][Math.floor(Math.random() * 5)]
+  }));
+
+  return enhancedGoals;
 };
 
-export const createGoal = async (goalData: Omit<Goal, 'id'>): Promise<Goal> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
+export const createGoal = async (goalData: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Goal> => {
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const newGoal: Goal = {
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const enhancedGoal = {
     ...goalData,
-    id: Date.now().toString()
+    user_id: user.id,
+    progress: 0,
+    related_contacts: Math.floor(Math.random() * 5) + 1,
+    category: goalData.category || 'Networking'
   };
-  
-  const existingGoals = JSON.parse(localStorage.getItem('rhiz-goals') || '[]');
-  const updatedGoals = [...existingGoals, newGoal];
-  localStorage.setItem('rhiz-goals', JSON.stringify(updatedGoals));
-  
-  return newGoal;
+
+  const { data, error } = await supabase
+    .from('goals')
+    .insert([enhancedGoal])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create goal: ${error.message}`);
+  }
+
+  return data;
 };
 
 export const updateGoal = async (goal: Goal): Promise<Goal> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
+  const { data: { user } } = await supabase.auth.getUser();
   
-  const existingGoals = JSON.parse(localStorage.getItem('rhiz-goals') || '[]');
-  const updatedGoals = existingGoals.map((g: Goal) => g.id === goal.id ? goal : g);
-  localStorage.setItem('rhiz-goals', JSON.stringify(updatedGoals));
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('goals')
+    .update({
+      ...goal,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', goal.id)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update goal: ${error.message}`);
+  }
+
+  return data;
+};
+
+export const deleteGoal = async (goalId: string): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
   
-  return goal;
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', goalId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    throw new Error(`Failed to delete goal: ${error.message}`);
+  }
+};
+
+// Real-time subscription for goals
+export const subscribeToGoals = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('goals')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'goals' 
+    }, callback)
+    .subscribe();
 };

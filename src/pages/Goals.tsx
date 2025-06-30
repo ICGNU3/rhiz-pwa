@@ -11,19 +11,8 @@ import GoalStats from '../components/goals/GoalStats';
 import GoalForm from '../components/goals/GoalForm';
 import GoalFilters from '../components/goals/GoalFilters';
 import GoalInsights from '../components/goals/GoalInsights';
-import { getGoals, createGoal, updateGoal } from '../api/goals';
-
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  targetDate: string;
-  completed: boolean;
-  priority: 'low' | 'medium' | 'high';
-  progress?: number;
-  relatedContacts?: number;
-  category?: string;
-}
+import { getGoals, createGoal, updateGoal, Goal } from '../api/goals';
+import { useRealTimeGoals } from '../hooks/useRealTimeGoals';
 
 const Goals: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,6 +20,9 @@ const Goals: React.FC = () => {
   const [filterBy, setFilterBy] = useState('all');
   const [sortBy, setSortBy] = useState('priority');
   const queryClient = useQueryClient();
+
+  // Enable real-time updates
+  useRealTimeGoals();
 
   const { data: goals, isLoading, error, refetch } = useQuery({
     queryKey: ['goals'],
@@ -41,6 +33,7 @@ const Goals: React.FC = () => {
     mutationFn: createGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setIsModalOpen(false);
       setEditingGoal(null);
     },
@@ -50,6 +43,7 @@ const Goals: React.FC = () => {
     mutationFn: updateGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setIsModalOpen(false);
       setEditingGoal(null);
     },
@@ -61,14 +55,14 @@ const Goals: React.FC = () => {
     const goalData = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
-      targetDate: formData.get('targetDate') as string,
+      target_date: formData.get('targetDate') as string,
       priority: formData.get('priority') as 'low' | 'medium' | 'high',
       category: formData.get('category') as string,
       completed: false,
     };
 
     if (editingGoal) {
-      updateMutation.mutate({ ...goalData, id: editingGoal.id, completed: editingGoal.completed });
+      updateMutation.mutate({ ...goalData, ...editingGoal });
     } else {
       createMutation.mutate(goalData);
     }
@@ -78,21 +72,13 @@ const Goals: React.FC = () => {
     updateMutation.mutate({ ...goal, completed: !goal.completed });
   };
 
-  // Enhance goals with mock progress and related data
-  const enhancedGoals = goals?.map((goal: Goal) => ({
-    ...goal,
-    progress: Math.floor(Math.random() * 100),
-    relatedContacts: Math.floor(Math.random() * 5) + 1,
-    category: ['Networking', 'Fundraising', 'Hiring', 'Partnerships', 'Growth'][Math.floor(Math.random() * 5)]
-  }));
-
-  const filteredGoals = enhancedGoals?.filter((goal: Goal) => {
+  const filteredGoals = goals?.filter((goal: Goal) => {
     if (filterBy === 'all') return true;
     if (filterBy === 'active') return !goal.completed;
     if (filterBy === 'completed') return goal.completed;
     if (filterBy === 'overdue') {
       const today = new Date();
-      const targetDate = new Date(goal.targetDate);
+      const targetDate = new Date(goal.target_date);
       return !goal.completed && targetDate < today;
     }
     if (filterBy === 'high-priority') return goal.priority === 'high';
@@ -106,7 +92,7 @@ const Goals: React.FC = () => {
       return (b.progress || 0) - (a.progress || 0);
     }
     if (sortBy === 'deadline') {
-      return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+      return new Date(a.target_date).getTime() - new Date(b.target_date).getTime();
     }
     return 0;
   });
@@ -136,11 +122,11 @@ const Goals: React.FC = () => {
     );
   }
 
-  const activeGoals = enhancedGoals?.filter(g => !g.completed).length || 0;
-  const completedGoals = enhancedGoals?.filter(g => g.completed).length || 0;
-  const avgProgress = enhancedGoals?.length ? 
-    Math.round(enhancedGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / enhancedGoals.length) : 0;
-  const connectedPeople = enhancedGoals?.reduce((sum, g) => sum + (g.relatedContacts || 0), 0) || 0;
+  const activeGoals = goals?.filter(g => !g.completed).length || 0;
+  const completedGoals = goals?.filter(g => g.completed).length || 0;
+  const avgProgress = goals?.length ? 
+    Math.round(goals.reduce((sum, g) => sum + (g.progress || 0), 0) / goals.length) : 0;
+  const connectedPeople = goals?.reduce((sum, g) => sum + (g.related_contacts || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
@@ -251,15 +237,6 @@ const Goals: React.FC = () => {
               </div>
             </Card>
           )}
-        </div>
-
-        {/* Floating Action Button for Mobile */}
-        <div className="fixed bottom-6 right-6 lg:hidden">
-          <Button 
-            icon={Plus} 
-            onClick={() => setIsModalOpen(true)}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
-          />
         </div>
 
         {/* Goal Creation/Edit Modal */}

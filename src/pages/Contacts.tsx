@@ -10,25 +10,8 @@ import ContactStats from '../components/contacts/ContactStats';
 import ContactForm from '../components/contacts/ContactForm';
 import ContactSearch from '../components/contacts/ContactSearch';
 import ContactListView from '../components/contacts/ContactListView';
-import { getContacts, createContact } from '../api/contacts';
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company: string;
-  title: string;
-  location?: string;
-  notes?: string;
-  tags: string[];
-  lastContact?: string;
-  trustScore?: number;
-  engagementTrend?: 'up' | 'down' | 'stable';
-  relationshipStrength?: 'strong' | 'medium' | 'weak';
-  mutualConnections?: number;
-  relationshipType?: string;
-}
+import { getContacts, createContact, Contact } from '../api/contacts';
+import { useRealTimeContacts } from '../hooks/useRealTimeContacts';
 
 const Contacts: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,6 +20,9 @@ const Contacts: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
   const queryClient = useQueryClient();
+
+  // Enable real-time updates
+  useRealTimeContacts();
 
   const { data: contacts, isLoading, error } = useQuery({
     queryKey: ['contacts'],
@@ -47,6 +33,8 @@ const Contacts: React.FC = () => {
     mutationFn: createContact,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['network-data'] });
       setIsModalOpen(false);
     },
   });
@@ -68,35 +56,25 @@ const Contacts: React.FC = () => {
     createMutation.mutate(contactData);
   };
 
-  // Enhance contacts with mock data for demo purposes
-  const enhancedContacts = contacts?.map((contact: Contact) => ({
-    ...contact,
-    trustScore: Math.floor(Math.random() * 30) + 70,
-    engagementTrend: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'stable',
-    relationshipStrength: ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] as 'strong' | 'medium' | 'weak',
-    mutualConnections: Math.floor(Math.random() * 15) + 1,
-    relationshipType: ['friend', 'colleague', 'investor', 'mentor', 'client', 'partner'][Math.floor(Math.random() * 6)]
-  }));
-
   // Filter and sort contacts based on search and filters
-  const filteredContacts = enhancedContacts?.filter((contact: Contact) => {
+  const filteredContacts = contacts?.filter((contact: Contact) => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (relationshipFilter === 'all') return matchesSearch;
-    return matchesSearch && contact.relationshipType === relationshipFilter;
+    return matchesSearch && contact.relationship_type === relationshipFilter;
   })?.sort((a, b) => {
     switch (sortBy) {
       case 'name': return a.name.localeCompare(b.name);
       case 'company': return a.company.localeCompare(b.company);
-      case 'trustScore': return (b.trustScore || 0) - (a.trustScore || 0);
+      case 'trustScore': return (b.trust_score || 0) - (a.trust_score || 0);
       case 'lastContact': 
-        if (!a.lastContact && !b.lastContact) return 0;
-        if (!a.lastContact) return 1;
-        if (!b.lastContact) return -1;
-        return new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime();
+        if (!a.last_contact && !b.last_contact) return 0;
+        if (!a.last_contact) return 1;
+        if (!b.last_contact) return -1;
+        return new Date(b.last_contact).getTime() - new Date(a.last_contact).getTime();
       default: return 0;
     }
   });
@@ -128,9 +106,9 @@ const Contacts: React.FC = () => {
   }
 
   // Calculate stats for ContactStats component
-  const strongRelationships = enhancedContacts?.filter(c => c.relationshipStrength === 'strong').length || 0;
-  const averageTrustScore = Math.round((enhancedContacts?.reduce((sum, c) => sum + (c.trustScore || 0), 0) || 0) / (enhancedContacts?.length || 1));
-  const growingEngagement = enhancedContacts?.filter(c => c.engagementTrend === 'up').length || 0;
+  const strongRelationships = contacts?.filter(c => c.relationship_strength === 'strong').length || 0;
+  const averageTrustScore = Math.round((contacts?.reduce((sum, c) => sum + (c.trust_score || 0), 0) || 0) / (contacts?.length || 1));
+  const growingEngagement = contacts?.filter(c => c.engagement_trend === 'up').length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
@@ -165,7 +143,7 @@ const Contacts: React.FC = () => {
 
         {/* Enhanced Statistics Dashboard */}
         <ContactStats 
-          totalContacts={enhancedContacts?.length || 0}
+          totalContacts={contacts?.length || 0}
           strongRelationships={strongRelationships}
           averageTrustScore={averageTrustScore}
           growingEngagement={growingEngagement}
