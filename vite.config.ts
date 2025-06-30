@@ -85,13 +85,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Cache all static assets (CSS, JS, images, fonts)
-        globPatterns: [
-          '**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,eot}'
-        ],
-        // Define runtime caching strategies
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
-          // API calls with network-first strategy
           {
             urlPattern: /^.*\/api\/.*/,
             handler: 'NetworkFirst',
@@ -100,14 +95,9 @@ export default defineConfig({
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              networkTimeoutSeconds: 10,
-              cacheKeyWillBeUsed: async ({ request }) => {
-                return `${request.url}?version=1`;
               }
             }
           },
-          // Static assets with cache-first strategy
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
             handler: 'CacheFirst',
@@ -119,7 +109,6 @@ export default defineConfig({
               }
             }
           },
-          // Fonts with cache-first strategy
           {
             urlPattern: /\.(?:woff|woff2|ttf|eot)$/,
             handler: 'CacheFirst',
@@ -131,7 +120,6 @@ export default defineConfig({
               }
             }
           },
-          // External CDN resources
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -143,7 +131,6 @@ export default defineConfig({
               }
             }
           },
-          // Navigation requests (for offline fallback)
           {
             urlPattern: /^.*\/(app|login|dashboard|contacts|goals|intelligence|network|trust|settings|import).*$/,
             handler: 'NetworkFirst',
@@ -157,14 +144,10 @@ export default defineConfig({
             }
           }
         ],
-        // Skip waiting to activate new service worker immediately
         skipWaiting: true,
         clientsClaim: true,
-        // Clean up old caches
         cleanupOutdatedCaches: true,
-        // Offline fallback
-        navigateFallback: '/offline',
-        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
+        navigateFallback: '/offline'
       },
       devOptions: {
         enabled: true,
@@ -174,10 +157,5 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
-  },
-  // PWA splash screen and mobile optimization
-  define: {
-    __PWA_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
-    __PWA_BUILD_DATE__: JSON.stringify(new Date().toISOString())
   }
 });
