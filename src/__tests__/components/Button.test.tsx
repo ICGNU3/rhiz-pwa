@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '../utils/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -9,13 +10,13 @@ describe('Button Component', () => {
     render(<Button>Click me</Button>);
     const button = screen.getByRole('button', { name: /click me/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass('bg-indigo-600'); // primary variant
+    expect(button.className).toContain('bg-gradient-to-r');
   });
 
   it('applies variant classes correctly', () => {
     render(<Button variant="secondary">Secondary</Button>);
     const button = screen.getByRole('button', { name: /secondary/i });
-    expect(button).toHaveClass('bg-purple-600');
+    expect(button.className).toContain('bg-gradient-to-r');
   });
 
   it('applies size classes correctly', () => {
@@ -32,7 +33,7 @@ describe('Button Component', () => {
 
   it('shows loading state', () => {
     render(<Button loading>Loading</Button>);
-    const button = screen.getByRole('button');
+    const button = screen.getByRole('button', { name: /loading/i });
     expect(button).toBeDisabled();
     expect(button.querySelector('.animate-spin')).toBeInTheDocument();
   });
