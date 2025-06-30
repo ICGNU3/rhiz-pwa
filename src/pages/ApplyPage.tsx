@@ -22,7 +22,8 @@ const ApplyPage: React.FC = () => {
     organization: '',
     vertical: 'Founder',
     reason: '',
-    referral: ''
+    referral: '',
+    features: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -52,6 +53,7 @@ const ApplyPage: React.FC = () => {
             vertical: formData.vertical,
             reason: formData.reason,
             referral: formData.referral,
+            features: formData.features,
             status: 'pending'
           }
         ]);
@@ -355,7 +357,7 @@ const ApplyPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
-                    Why you'll energize your circle of trust *
+                    What goal/s would Rhiz help you complete faster? *
                   </label>
                   <textarea
                     id="reason"
@@ -363,6 +365,20 @@ const ApplyPage: React.FC = () => {
                     rows={4}
                     required
                     value={formData.reason}
+                    onChange={handleChange}
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="features" className="block text-sm font-medium text-gray-700 mb-2">
+                    Are there any features we haven't thought of that you'd like to have?
+                  </label>
+                  <textarea
+                    id="features"
+                    name="features"
+                    rows={4}
+                    value={formData.features}
                     onChange={handleChange}
                     className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
