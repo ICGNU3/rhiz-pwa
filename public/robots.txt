@@ -3,4 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://rhiz.app/sitemap.xml
+Sitemap: https://ourhizome.com/sitemap.xml
+
+# Optimize crawling
+Crawl-delay: 10
