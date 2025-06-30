@@ -46,19 +46,21 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans font-light">
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg transform ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Network className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/OuRhizome Dark CRM Background Removed Background Removed.png" 
+              alt="Rhiz Logo" 
+              className="w-8 h-8"
+            />
             <div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Rhiz</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Relationship Engine</p>
+              <span className="text-xl font-light text-gray-900 dark:text-white">Rhiz</span>
+              <p className="text-xs font-light text-gray-500 dark:text-gray-400">Relationship Engine</p>
             </div>
           </div>
           <button
@@ -77,17 +79,17 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                className={`flex items-center px-3 py-3 text-sm font-light rounded-lg transition-all duration-200 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-aqua to-emerald text-white shadow-lg'
                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`} />
                 <div className="flex-1">
-                  <div className={isActive ? 'text-white' : ''}>{item.name}</div>
-                  <div className={`text-xs ${isActive ? 'text-indigo-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <div className={`font-light ${isActive ? 'text-white' : ''}`}>{item.name}</div>
+                  <div className={`text-xs font-light ${isActive ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
                     {item.description}
                   </div>
                 </div>
@@ -100,19 +102,19 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="px-4 mb-4">
           <Link
             to="/app/intelligence"
-            className="flex items-center px-3 py-3 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg"
+            className="flex items-center px-3 py-3 text-sm font-light text-white bg-gradient-to-r from-lavender to-emerald rounded-lg hover:shadow-lg transition-all duration-200"
           >
             <MessageSquare className="w-5 h-5 mr-3" />
             <div>
-              <div>Ask AI Assistant</div>
-              <div className="text-xs text-purple-100">Get network insights</div>
+              <div className="font-light">Ask AI Assistant</div>
+              <div className="text-xs font-light text-white/80">Get network insights</div>
             </div>
           </Link>
         </div>
 
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Theme</span>
+            <span className="text-sm font-light text-gray-600 dark:text-gray-400">Theme</span>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
@@ -127,25 +129,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           
           <button
             onClick={handleInstall}
-            className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors mb-4"
+            className="w-full flex items-center justify-center px-3 py-2 text-sm font-light text-aqua bg-aqua/10 rounded-lg hover:bg-aqua/20 transition-colors mb-4"
           >
             <Download className="w-4 h-4 mr-2" />
             Install App
           </button>
 
           <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium text-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-aqua to-emerald rounded-full flex items-center justify-center">
+              <span className="text-white font-light text-sm">
                 {user?.name?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <p className="text-sm font-light text-gray-900 dark:text-white truncate">
                 {user?.name}
               </p>
               <button
                 onClick={logout}
-                className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                className="text-xs font-light text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 Sign out
               </button>
@@ -170,7 +172,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 font-light">
           {children}
         </main>
       </div>

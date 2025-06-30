@@ -4,6 +4,13 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Mont', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      fontWeight: {
+        light: '300',
+        normal: '400',
+      },
       colors: {
         primary: {
           50: '#eef2ff',

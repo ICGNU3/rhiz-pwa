@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import { Mail, CheckCircle, ArrowLeft, Network } from 'lucide-react';
+import { Mail, CheckCircle, ArrowLeft } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -107,38 +107,40 @@ const Login: React.FC = () => {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Network className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-3xl font-bold text-gray-900 dark:text-white">Rhiz</span>
+              <img 
+                src="/OuRhizome Dark CRM Background Removed Background Removed.png" 
+                alt="Rhiz Logo" 
+                className="w-12 h-12"
+              />
+              <span className="text-3xl font-light text-white">Rhiz</span>
             </Link>
           </div>
 
-          <Card className="p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+          <Card className="p-8 text-center bg-white/90 backdrop-blur-md border border-emerald/50">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald to-aqua rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-white" />
             </div>
             
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-2xl font-light text-gray-900 mb-4">
               Check Your Email
             </h2>
             
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-600 font-light mb-6">
               We've sent a magic link to <strong>{email}</strong>. 
               Click the link in your email to sign in to your account.
             </p>
 
             <div className="space-y-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
+              <div className="p-4 bg-gradient-to-r from-emerald/10 to-aqua/10 rounded-lg border border-emerald/20">
+                <div className="flex items-center space-x-2 text-emerald">
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm font-medium">Magic link sent!</span>
+                  <span className="text-sm font-light">Magic link sent!</span>
                 </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                <p className="text-xs font-light text-gray-600 mt-1">
                   The link will expire in 1 hour for security.
                 </p>
               </div>
@@ -146,7 +148,7 @@ const Login: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={handleTryAgain}
-                className="w-full"
+                className="w-full font-light"
                 icon={ArrowLeft}
               >
                 Try Different Email
@@ -155,7 +157,7 @@ const Login: React.FC = () => {
           </Card>
 
           <div className="text-center">
-            <Link to="/" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+            <Link to="/" className="text-sm font-light text-white/80 hover:text-white">
               ← Back to home
             </Link>
           </div>
@@ -165,37 +167,39 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Network className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">Rhiz</span>
+            <img 
+              src="/OuRhizome Dark CRM Background Removed Background Removed.png" 
+              alt="Rhiz Logo" 
+              className="w-12 h-12"
+            />
+            <span className="text-3xl font-light text-white">Rhiz</span>
           </Link>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-light text-white">
             Alpha Members Sign In
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-sm font-light text-white/80">
             Enter your email to receive a magic link
             <br />
-            <Link to="/apply" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+            <Link to="/apply" className="text-white hover:text-white/90 underline">
               Can't login yet? Apply for early access
             </Link>
           </p>
         </div>
 
-        <Card className="p-8">
+        <Card className="p-8 bg-white/90 backdrop-blur-md border border-emerald/50">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-light">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-light text-gray-700 mb-2">
                 Email address
               </label>
               <input
@@ -206,14 +210,14 @@ const Login: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 bg-white text-gray-900 font-light focus:outline-none focus:ring-2 focus:ring-emerald focus:border-emerald"
                 placeholder="Enter your email"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              className="w-full bg-gradient-to-r from-aqua via-emerald to-lavender text-white font-light"
               loading={loading}
               size="lg"
               icon={Mail}
@@ -221,15 +225,15 @@ const Login: React.FC = () => {
               Send Magic Link
             </Button>
 
-            <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <p className="font-medium mb-2">✨ Magic Link Authentication</p>
+            <div className="text-sm font-light text-gray-600 bg-gray-50 p-4 rounded-lg">
+              <p className="font-light mb-2">✨ Magic Link Authentication</p>
               <p>No passwords needed! We'll send you a secure link to sign in instantly.</p>
             </div>
           </form>
         </Card>
 
         <div className="text-center">
-          <Link to="/" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+          <Link to="/" className="text-sm font-light text-white/80 hover:text-white">
             ← Back to home
           </Link>
         </div>
