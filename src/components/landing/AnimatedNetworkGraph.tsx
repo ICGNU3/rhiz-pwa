@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 const AnimatedNetworkGraph: React.FC = memo(() => {
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Generate random nodes and edges for the demo - optimized to reduce calculations
-  const nodes = Array.from({ length: 12 }, (_, i) => ({
+  // Generate random nodes and edges for the demo
+  const nodes = Array.from({ length: 15 }, (_, i) => ({
     id: `node-${i}`,
     x: Math.random() * 300 + 50,
     y: Math.random() * 200 + 50,
@@ -14,19 +14,22 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
     color: i % 3 === 0 ? '#2ECC71' : i % 3 === 1 ? '#1ABC9C' : '#8E44AD'
   }));
   
-  // Reduce number of edges for better performance
+  // Create more interesting connections
   const edges = [];
   for (let i = 0; i < nodes.length; i++) {
-    // Connect to at most 2 other nodes
-    const connections = Math.floor(Math.random() * 2) + 1;
+    // Connect to 2-3 other nodes
+    const connections = Math.floor(Math.random() * 2) + 2;
     for (let c = 0; c < connections; c++) {
-      const j = (i + c + 1) % nodes.length;
-      edges.push({
-        id: `edge-${i}-${j}`,
-        source: i,
-        target: j,
-        strength: Math.random() * 0.3 + 0.1
-      });
+      // Create more natural connections (not just sequential)
+      const j = (i + Math.floor(Math.random() * nodes.length)) % nodes.length;
+      if (i !== j) {
+        edges.push({
+          id: `edge-${i}-${j}`,
+          source: i,
+          target: j,
+          strength: Math.random() * 0.3 + 0.1
+        });
+      }
     }
   }
 
@@ -45,19 +48,25 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-200 dark:text-gray-700" opacity="0.3"/>
           </pattern>
           
-          {/* Simplified glow effect */}
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          {/* Enhanced glow effect */}
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
             <feMerge> 
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
+
+          {/* Gradient for edges */}
+          <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#1ABC9C" stopOpacity="0.6"/>
+            <stop offset="100%" stopColor="#8E44AD" stopOpacity="0.6"/>
+          </linearGradient>
         </defs>
         
         <rect width="100%" height="100%" fill="url(#grid)" />
 
-        {/* Animated Edges - with reduced animation complexity */}
+        {/* Animated Edges with enhanced styling */}
         <motion.g 
           className="edges"
           initial={{ opacity: 0 }}
@@ -71,17 +80,28 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
               y1={nodes[edge.source].y}
               x2={nodes[edge.target].x}
               y2={nodes[edge.target].y}
-              stroke={Math.random() > 0.5 ? "#1ABC9C" : "#8E44AD"}
-              strokeWidth={edge.strength * 2}
-              opacity={0.5}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1, delay: 0.5 }}
-            />
+              stroke="url(#edgeGradient)"
+              strokeWidth={edge.strength * 3}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.7 }}
+              transition={{ 
+                duration: 1.5, 
+                delay: 0.5 + Math.random() * 0.5,
+                ease: "easeInOut"
+              }}
+            >
+              <animate
+                attributeName="strokeDashoffset"
+                from="0"
+                to="20"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </motion.line>
           ))}
         </motion.g>
 
-        {/* Animated Nodes - with simplified animations */}
+        {/* Animated Nodes with enhanced animations */}
         <g className="nodes">
           {nodes.map((node, index) => (
             <motion.g 
@@ -89,13 +109,32 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
-                duration: 0.4, 
+                duration: 0.5, 
                 delay: 0.05 * index,
                 type: "spring",
                 stiffness: 200,
                 damping: 15
               }}
             >
+              {/* Glow effect */}
+              <motion.circle
+                cx={node.x}
+                cy={node.y}
+                r={node.size + 4}
+                fill={node.color}
+                opacity={0.3}
+                filter="url(#glow)"
+                animate={{
+                  r: [node.size + 4, node.size + 8, node.size + 4],
+                }}
+                transition={{
+                  duration: 3 + Math.random() * 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              
+              {/* Main node */}
               <motion.circle
                 cx={node.x}
                 cy={node.y}
@@ -105,19 +144,77 @@ const AnimatedNetworkGraph: React.FC = memo(() => {
                 strokeWidth={1.5}
                 filter="url(#glow)"
                 animate={{
-                  x: [0, Math.random() * 10 - 5, 0],
-                  y: [0, Math.random() * 10 - 5, 0],
+                  x: [0, Math.random() * 15 - 7.5, 0],
+                  y: [0, Math.random() * 15 - 7.5, 0],
                 }}
                 transition={{
-                  duration: 4 + Math.random() * 2,
+                  duration: 4 + Math.random() * 3,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
               />
+              
+              {/* Pulse effect for some nodes */}
+              {index % 3 === 0 && (
+                <motion.circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.size}
+                  fill="transparent"
+                  stroke={node.color}
+                  strokeWidth={1}
+                  initial={{ scale: 1, opacity: 1 }}
+                  animate={{ 
+                    scale: [1, 2, 1],
+                    opacity: [0.8, 0, 0.8]
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    delay: Math.random() * 2
+                  }}
+                />
+              )}
             </motion.g>
           ))}
         </g>
+        
+        {/* Floating particles for added dynamism */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <motion.circle
+            key={`particle-${i}`}
+            cx={Math.random() * 400}
+            cy={Math.random() * 300}
+            r={1 + Math.random() * 2}
+            fill="#ffffff"
+            opacity={0.6}
+            animate={{
+              x: [0, Math.random() * 50 - 25, 0],
+              y: [0, Math.random() * 50 - 25, 0],
+              opacity: [0.2, 0.7, 0.2]
+            }}
+            transition={{
+              duration: 5 + Math.random() * 5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: Math.random() * 2
+            }}
+          />
+        ))}
       </svg>
+      
+      {/* Overlay text */}
+      <motion.div 
+        className="absolute bottom-0 left-0 right-0 bg-white/30 dark:bg-black/30 backdrop-blur-sm p-2 rounded-b-xl"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1, duration: 0.5 }}
+      >
+        <span className="text-sm font-medium text-gray-900 dark:text-white flex justify-center items-center space-x-1">
+          <span className="w-2 h-2 bg-emerald rounded-full animate-pulse"></span>
+          <span>Intelligent Network Mapping</span>
+        </span>
+      </motion.div>
     </div>
   );
 });
