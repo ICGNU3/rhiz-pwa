@@ -246,11 +246,11 @@ const ApplyPage: React.FC = () => {
         {/* Application Form */}
         <Card className="p-8 bg-white/90 backdrop-blur-md border border-emerald/50">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-light text-gray-900">
+            <h2 className="text-2xl font-medium text-gray-900">
               Apply for Alpha Access
             </h2>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-light text-gray-600">Step {step} of 2</span>
+              <span className="text-sm font-medium text-gray-700">Step {step} of 2</span>
               <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-aqua to-emerald rounded-full transition-all duration-300"
@@ -264,7 +264,7 @@ const ApplyPage: React.FC = () => {
             <form onSubmit={handleNextStep} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                     Name *
                   </label>
                   <input
@@ -279,7 +279,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email *
                   </label>
                   <input
@@ -294,7 +294,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="organization" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
                     Organization / Role *
                   </label>
                   <input
@@ -332,7 +332,7 @@ const ApplyPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="vertical" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="vertical" className="block text-sm font-medium text-gray-700 mb-2">
                     Vertical *
                   </label>
                   <select
@@ -354,7 +354,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="reason" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
                     Why you'll energize your circle of trust *
                   </label>
                   <textarea
@@ -369,7 +369,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="referral" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="referral" className="block text-sm font-medium text-gray-700 mb-2">
                     Referral Code (optional)
                   </label>
                   <input
