@@ -9,7 +9,7 @@ export const getTrustMetrics = async () => {
 
   const { data: contacts } = await supabase
     .from('contacts')
-    .select('trust_score, relationship_strength, last_contact')
+    .select('trust_score, relationship_strength, last_contact, name, email')
     .eq('user_id', user.id);
 
   if (!contacts) {
@@ -17,9 +17,13 @@ export const getTrustMetrics = async () => {
       overallScore: 85,
       avgResponseTime: '2.3 hours',
       dormantPercentage: 15,
-      securityFeatures: 5,
-      privacyControls: 8,
+      securityFeatures: 7,
+      privacyControls: 12,
       auditEvents: 127,
+      twoFactorEnabled: false,
+      backupsEnabled: true,
+      privacyControlsEnabled: true,
+      auditLoggingEnabled: true,
       tiers: [],
       timelineData: [],
       lowTrustAlerts: []
@@ -64,22 +68,58 @@ export const getTrustMetrics = async () => {
     }
   ];
 
-  // Generate timeline data
-  const timelineData = Array.from({ length: 6 }, (_, i) => ({
-    date: new Date(now.getTime() - (5 - i) * 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    score: overallScore + Math.floor(Math.random() * 10) - 5
-  }));
+  // Generate timeline data (last 30 days)
+  const timelineData = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date(now.getTime() - (29 - i) * 24 * 60 * 60 * 1000);
+    return {
+      date: date.toISOString().split('T')[0],
+      score: overallScore + Math.floor(Math.random() * 10) - 5 // Simulate score variation
+    };
+  });
 
-  // Generate low trust alerts
-  const lowTrustAlerts = dormantContacts.slice(0, 3).map((contact, index) => ({
-    id: `alert-${index}`,
-    contact: contact.name || 'Unknown Contact',
-    reason: 'No response to last 3 messages over 30 days',
-    trustScore: contact.trust_score || 45,
-    severity: 'high' as const,
-    action: 'Review relationship status',
-    timestamp: `${Math.floor(Math.random() * 24)} hours ago`
-  }));
+  // Generate low trust alerts from dormant high-value contacts
+  const lowTrustAlerts = dormantContacts
+    .filter(contact => (contact.trust_score || 0) >= 70) // High-value dormant contacts
+    .slice(0, 5)
+    .map((contact, index) => ({
+      id: `alert-${contact.email}-${index}`,
+      contact: contact.name || 'Unknown Contact',
+      reason: `No contact in 90+ days despite high trust score of ${contact.trust_score}. Relationship at risk of deteriorating.`,
+      trustScore: contact.trust_score || 70,
+      severity: 'high' as const,
+      action: 'Schedule Reconnection',
+      timestamp: `${Math.floor(Math.random() * 72) + 1} hours ago`
+    }));
+
+  // Add some medium priority alerts
+  const mediumAlerts = contacts
+    .filter(c => (c.trust_score || 75) < 60)
+    .slice(0, 3)
+    .map((contact, index) => ({
+      id: `alert-medium-${contact.email}-${index}`,
+      contact: contact.name || 'Unknown Contact',
+      reason: `Trust score below 60 (${contact.trust_score}). Consider reviewing relationship status and recent interactions.`,
+      trustScore: contact.trust_score || 45,
+      severity: 'medium' as const,
+      action: 'Review Relationship',
+      timestamp: `${Math.floor(Math.random() * 48) + 1} hours ago`
+    }));
+
+  // Add some low priority alerts
+  const lowAlerts = contacts
+    .filter(c => !c.last_contact)
+    .slice(0, 2)
+    .map((contact, index) => ({
+      id: `alert-low-${contact.email}-${index}`,
+      contact: contact.name || 'Unknown Contact',
+      reason: 'No interaction history recorded. Consider adding contact notes or scheduling initial outreach.',
+      trustScore: contact.trust_score || 50,
+      severity: 'low' as const,
+      action: 'Add Contact Notes',
+      timestamp: `${Math.floor(Math.random() * 24) + 1} hours ago`
+    }));
+
+  const allAlerts = [...lowTrustAlerts, ...mediumAlerts, ...lowAlerts];
 
   return {
     overallScore,
@@ -87,13 +127,87 @@ export const getTrustMetrics = async () => {
     dormantPercentage,
     securityFeatures: 7,
     privacyControls: 12,
-    auditEvents: 127,
-    twoFactorEnabled: false,
+    auditEvents: 127 + Math.floor(Math.random() * 50),
+    twoFactorEnabled: Math.random() > 0.5,
     backupsEnabled: true,
     privacyControlsEnabled: true,
     auditLoggingEnabled: true,
     tiers,
     timelineData,
-    lowTrustAlerts
+    lowTrustAlerts: allAlerts
   };
+};
+
+// Export trust data
+export const exportTrustData = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const trustMetrics = await getTrustMetrics();
+  
+  const exportData = {
+    userId: user.id,
+    exportDate: new Date().toISOString(),
+    trustMetrics,
+    metadata: {
+      version: '1.0',
+      format: 'json',
+      encrypted: false
+    }
+  };
+
+  return exportData;
+};
+
+// Update privacy settings
+export const updatePrivacySettings = async (settings: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // In a real implementation, this would update user settings in the database
+  localStorage.setItem('rhiz-privacy-settings', JSON.stringify(settings));
+  
+  return settings;
+};
+
+// Get privacy settings
+export const getPrivacySettings = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const stored = localStorage.getItem('rhiz-privacy-settings');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+
+  // Default privacy settings
+  return {
+    profileVisibility: 'connections',
+    contactSharing: false,
+    activityTracking: true,
+    dataCollection: 'minimal',
+    thirdPartyIntegrations: true,
+    analyticsOptOut: false
+  };
+};
+
+// Real-time subscription for trust changes
+export const subscribeToTrustChanges = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('trust_changes')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'contacts' 
+    }, callback)
+    .subscribe();
 };
