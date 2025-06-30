@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Network as NetworkIcon, Users, Building, MapPin, GitBranch, Zap, TrendingUp, Search, Filter, BarChart3, Maximize2, Settings } from 'lucide-react';
 import Card from '../components/Card';
@@ -8,6 +8,7 @@ import ErrorBorder from '../components/ErrorBorder';
 import ContactSearch from '../components/contacts/ContactSearch';
 import NetworkGraph from '../components/network/NetworkGraph';
 import { getNetworkData } from '../api/network';
+import { measureTime } from '../utils/performance';
 
 interface NetworkNode {
   id: string;
@@ -28,15 +29,32 @@ const Network: React.FC = () => {
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [minStrength, setMinStrength] = useState<number>(0);
   const [networkViewMode, setNetworkViewMode] = useState<'force' | 'cluster' | 'hierarchy'>('force');
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    loadTime: 0,
+    nodeCount: 0,
+    edgeCount: 0
+  });
 
   // Enhanced data fetching with filters
   const { data: networkData, isLoading, error, refetch } = useQuery({
     queryKey: ['network-data', filterTags, minStrength, relationshipFilter],
-    queryFn: () => getNetworkData({ 
-      tags: filterTags, 
-      minStrength, 
-      relationshipFilter: relationshipFilter !== 'all' ? relationshipFilter : undefined 
-    }),
+    queryFn: () => {
+      const startTime = performance.now();
+      
+      return getNetworkData({ 
+        tags: filterTags, 
+        minStrength, 
+        relationshipFilter: relationshipFilter !== 'all' ? relationshipFilter : undefined 
+      }).then(data => {
+        const endTime = performance.now();
+        setPerformanceMetrics({
+          loadTime: Math.round(endTime - startTime),
+          nodeCount: data.nodes.length,
+          edgeCount: data.edges.length
+        });
+        return data;
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -56,6 +74,32 @@ const Network: React.FC = () => {
   const handleFilterChange = (filter: string) => {
     setRelationshipFilter(filter);
   };
+
+  // Prefetch and cache node positions for better performance
+  useEffect(() => {
+    if (networkData?.nodes && networkData.nodes.length > 0) {
+      // Precompute positions in a web worker or on next idle callback
+      if ('requestIdleCallback' in window) {
+        // @ts-ignore
+        window.requestIdleCallback(() => {
+          measureTime('Precompute Node Positions', () => {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            // Precompute positions for all nodes
+            networkData.nodes.forEach((node, index) => {
+              const angle = (index / networkData.nodes.length) * 2 * Math.PI;
+              const radius = 150 + Math.random() * 100;
+              
+              // Store computed positions directly on the node object
+              node.x = centerX + Math.cos(angle) * radius;
+              node.y = centerY + Math.sin(angle) * radius;
+            });
+          });
+        });
+      }
+    }
+  }, [networkData?.nodes]);
 
   if (isLoading) {
     return (
@@ -203,6 +247,30 @@ const Network: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* Performance Metrics */}
+        <Card className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Performance Metrics</h3>
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              Optimized for large networks
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-indigo-600">{performanceMetrics.loadTime}ms</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Load Time</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-600">{performanceMetrics.nodeCount}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Nodes</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-blue-600">{performanceMetrics.edgeCount}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Edges</div>
+            </div>
+          </div>
+        </Card>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

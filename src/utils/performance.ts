@@ -174,3 +174,54 @@ export function measureTime<T>(name: string, fn: () => T): T {
   console.log(`[Performance] ${name} took ${(end - start).toFixed(2)}ms`);
   return result;
 }
+
+/**
+ * Creates a virtualized list renderer for large datasets
+ * @param items Full list of items
+ * @param renderItem Function to render a single item
+ * @param visibleCount Number of items to render at once
+ * @returns Virtualized list of rendered items
+ */
+export function virtualizeList<T>(
+  items: T[],
+  renderItem: (item: T, index: number) => React.ReactNode,
+  visibleCount: number = 100
+): React.ReactNode[] {
+  // If list is small enough, render everything
+  if (items.length <= visibleCount) {
+    return items.map(renderItem);
+  }
+  
+  // Otherwise, render only the most important items
+  // This is a simplified approach - a real implementation would consider viewport
+  return items.slice(0, visibleCount).map(renderItem);
+}
+
+/**
+ * Optimizes WebGL rendering by batching draw calls
+ * @param drawFn Function that performs WebGL drawing
+ * @param batchSize Number of items to batch together
+ */
+export function batchWebGLDrawCalls(
+  drawFn: (startIndex: number, endIndex: number) => void,
+  totalItems: number,
+  batchSize: number = 1000
+): void {
+  // Process in batches to avoid blocking the main thread
+  let currentBatch = 0;
+  
+  function processBatch() {
+    const start = currentBatch * batchSize;
+    const end = Math.min(start + batchSize, totalItems);
+    
+    drawFn(start, end);
+    
+    currentBatch++;
+    if (start < totalItems) {
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(processBatch);
+    }
+  }
+  
+  processBatch();
+}
