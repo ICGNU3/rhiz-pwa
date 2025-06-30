@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Filter } from 'lucide-react';
+import { Plus, Users, Filter, Search, Grid, List } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
+import ErrorBorder from '../components/ErrorBorder';
 import ContactCard from '../components/contacts/ContactCard';
 import ContactStats from '../components/contacts/ContactStats';
 import ContactForm from '../components/contacts/ContactForm';
@@ -12,6 +13,7 @@ import ContactSearch from '../components/contacts/ContactSearch';
 import ContactListView from '../components/contacts/ContactListView';
 import { getContacts, createContact, Contact } from '../api/contacts';
 import { useRealTimeContacts } from '../hooks/useRealTimeContacts';
+import { filterContacts, sortContacts } from '../utils/helpers';
 
 const Contacts: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,33 +53,12 @@ const Contacts: React.FC = () => {
       location: formData.get('location') as string,
       notes: formData.get('notes') as string,
       tags: (formData.get('tags') as string).split(',').map(tag => tag.trim()).filter(Boolean),
+      relationship_type: 'colleague', // Default value
+      source: 'manual'
     };
 
     createMutation.mutate(contactData);
   };
-
-  // Filter and sort contacts based on search and filters
-  const filteredContacts = contacts?.filter((contact: Contact) => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (relationshipFilter === 'all') return matchesSearch;
-    return matchesSearch && contact.relationship_type === relationshipFilter;
-  })?.sort((a, b) => {
-    switch (sortBy) {
-      case 'name': return a.name.localeCompare(b.name);
-      case 'company': return a.company.localeCompare(b.company);
-      case 'trustScore': return (b.trust_score || 0) - (a.trust_score || 0);
-      case 'lastContact': 
-        if (!a.last_contact && !b.last_contact) return 0;
-        if (!a.last_contact) return 1;
-        if (!b.last_contact) return -1;
-        return new Date(b.last_contact).getTime() - new Date(a.last_contact).getTime();
-      default: return 0;
-    }
-  });
 
   if (isLoading) {
     return (
@@ -93,21 +74,26 @@ const Contacts: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Failed to load contacts
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please check your connection and try again.
-          </p>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Contacts</h1>
         </div>
+        <ErrorBorder 
+          message="Failed to load contacts. Please check your connection and try again."
+          onRetry={() => queryClient.invalidateQueries({ queryKey: ['contacts'] })}
+        />
       </div>
     );
   }
 
+  // Filter and sort contacts based on search and filters
+  const filteredContacts = filterContacts(contacts || [], searchTerm, relationshipFilter);
+  const sortedContacts = sortContacts(filteredContacts, sortBy);
+
   // Calculate stats for ContactStats component
   const strongRelationships = contacts?.filter(c => c.relationship_strength === 'strong').length || 0;
-  const averageTrustScore = Math.round((contacts?.reduce((sum, c) => sum + (c.trust_score || 0), 0) || 0) / (contacts?.length || 1));
+  const averageTrustScore = contacts?.length 
+    ? Math.round(contacts.reduce((sum, c) => sum + (c.trust_score || 0), 0) / contacts.length)
+    : 0;
   const growingEngagement = contacts?.filter(c => c.engagement_trend === 'up').length || 0;
 
   return (
@@ -167,7 +153,7 @@ const Contacts: React.FC = () => {
         {searchTerm && (
           <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
             <p className="text-indigo-700 dark:text-indigo-300">
-              Found <span className="font-semibold">{filteredContacts?.length || 0}</span> contacts matching "{searchTerm}"
+              Found <span className="font-semibold">{sortedContacts.length}</span> contacts matching "{searchTerm}"
             </p>
             <Button 
               variant="ghost" 
@@ -181,12 +167,12 @@ const Contacts: React.FC = () => {
         )}
 
         {/* Contacts Display */}
-        {filteredContacts && filteredContacts.length > 0 ? (
+        {sortedContacts && sortedContacts.length > 0 ? (
           <div className={viewMode === 'grid' 
             ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" 
             : "space-y-4"
           }>
-            {filteredContacts.map((contact: Contact, index: number) => (
+            {sortedContacts.map((contact: Contact, index: number) => (
               <div
                 key={contact.id}
                 className="transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"

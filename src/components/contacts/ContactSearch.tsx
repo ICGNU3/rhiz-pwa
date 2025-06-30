@@ -23,7 +23,22 @@ export default function ContactSearch({
   viewMode,
   setViewMode
 }: ContactSearchProps) {
-  const relationshipTypes = ['all', 'friend', 'colleague', 'investor', 'mentor', 'client', 'partner'];
+  const relationshipTypes = [
+    { value: 'all', label: 'All Types' },
+    { value: 'friend', label: 'Friend' },
+    { value: 'colleague', label: 'Colleague' },
+    { value: 'investor', label: 'Investor' },
+    { value: 'mentor', label: 'Mentor' },
+    { value: 'client', label: 'Client' },
+    { value: 'partner', label: 'Partner' }
+  ];
+
+  const sortOptions = [
+    { value: 'name', label: 'Sort by Name' },
+    { value: 'company', label: 'Sort by Company' },
+    { value: 'trustScore', label: 'Sort by Trust Score' },
+    { value: 'lastContact', label: 'Sort by Last Contact' }
+  ];
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-6">
@@ -47,8 +62,8 @@ export default function ContactSearch({
           className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-w-[140px]"
         >
           {relationshipTypes.map(type => (
-            <option key={type} value={type}>
-              {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+            <option key={type.value} value={type.value}>
+              {type.label}
             </option>
           ))}
         </select>
@@ -58,10 +73,11 @@ export default function ContactSearch({
           onChange={(e) => setSortBy(e.target.value)}
           className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-w-[140px]"
         >
-          <option value="name">Sort by Name</option>
-          <option value="company">Sort by Company</option>
-          <option value="trustScore">Sort by Trust Score</option>
-          <option value="lastContact">Sort by Last Contact</option>
+          {sortOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
 
         <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
