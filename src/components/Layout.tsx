@@ -1,5 +1,5 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -30,6 +30,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Prefetch the most common routes
   usePrefetchRoute('/app/dashboard');
@@ -62,11 +63,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans font-light">
-      {/* Sidebar - with optimized rendering */}
+      {/* Desktop Sidebar - hidden on mobile, visible on sm and up */}
       <div 
         className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0 will-change-transform`}
+        } transition-transform duration-300 sm:translate-x-0 sm:static sm:inset-0 will-change-transform hidden sm:block`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
@@ -85,7 +86,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="sm:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
@@ -107,13 +108,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+      <div className="flex-1 flex flex-col overflow-hidden sm:ml-0">
         {/* Top bar */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sm:block">
           <div className="flex items-center justify-between h-16 px-6">
             <button
               onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="sm:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Open sidebar"
             >
               <Menu className="w-5 h-5" />
@@ -123,15 +124,38 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-6 font-light">
+        <main className="flex-1 overflow-auto p-6 font-light pb-20 sm:pb-6">
           {children}
         </main>
+
+        {/* Mobile Bottom Navigation - visible on mobile, hidden on sm and up */}
+        <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 shadow-lg border-t border-gray-200 dark:border-gray-700 flex justify-around p-3 sm:hidden z-40">
+          {navigation.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+            return (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.href)}
+                className={`flex flex-col items-center justify-center ${
+                  isActive 
+                    ? 'text-aqua' 
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+                aria-label={item.name}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="text-xs mt-1">{item.name}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Sidebar overlay - with optimized rendering */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity lg:hidden z-40"
+          className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity sm:hidden z-40"
           onClick={toggleSidebar}
           aria-hidden="true"
         />
