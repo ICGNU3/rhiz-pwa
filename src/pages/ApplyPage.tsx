@@ -36,6 +36,26 @@ const ApplyPage: React.FC = () => {
     setStep(2);
   };
 
+  const sendConfirmationEmail = async (name: string, email: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-application-email', {
+        body: { 
+          name, 
+          email, 
+          type: 'confirmation' 
+        }
+      });
+      
+      if (error) {
+        console.error('Error sending confirmation email:', error);
+      } else {
+        console.log('Confirmation email sent successfully:', data);
+      }
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -60,8 +80,8 @@ const ApplyPage: React.FC = () => {
 
       if (error) throw error;
 
-      // Send confirmation email (would be implemented in a real app)
-      // await sendConfirmationEmail(formData.email);
+      // Send confirmation email
+      await sendConfirmationEmail(formData.name, formData.email);
 
       setSuccess(true);
     } catch (err: any) {

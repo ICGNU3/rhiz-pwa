@@ -65,25 +65,40 @@ const AdminApplicationsPage: React.FC = () => {
     },
   });
 
+  // Send email notification
+  const sendEmailNotification = async (application: Application, type: 'approval' | 'rejection') => {
+    try {
+      await supabase.functions.invoke('send-application-email', {
+        body: { 
+          name: application.name, 
+          email: application.email, 
+          type: type 
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to send ${type} email:`, error);
+    }
+  };
+
   // Approve application mutation
   const approveMutation = useMutation({
     mutationFn: async (applicationId: string) => {
-      // 1. Update application status
+      // 1. Get application data
+      const { data: application, error: fetchError } = await supabase
+        .from('membership_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // 2. Update application status
       const { error: updateError } = await supabase
         .from('membership_applications')
         .update({ status: 'approved' })
         .eq('id', applicationId);
         
       if (updateError) throw updateError;
-      
-      // 2. Get application data to find user email
-      const { data: application, error: fetchError } = await supabase
-        .from('membership_applications')
-        .select('email')
-        .eq('id', applicationId)
-        .single();
-        
-      if (fetchError) throw fetchError;
       
       // 3. Set is_alpha flag for user with this email
       const { error: userUpdateError } = await supabase
@@ -93,8 +108,8 @@ const AdminApplicationsPage: React.FC = () => {
         
       if (userUpdateError) throw userUpdateError;
       
-      // 4. Send invitation email (would be implemented with Supabase Edge Function or Resend)
-      // await sendApprovalEmail(application.email);
+      // 4. Send approval email
+      await sendEmailNotification(application, 'approval');
       
       return applicationId;
     },
@@ -106,12 +121,26 @@ const AdminApplicationsPage: React.FC = () => {
   // Reject application mutation
   const rejectMutation = useMutation({
     mutationFn: async (applicationId: string) => {
+      // 1. Get application data
+      const { data: application, error: fetchError } = await supabase
+        .from('membership_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // 2. Update application status
       const { error } = await supabase
         .from('membership_applications')
         .update({ status: 'rejected' })
         .eq('id', applicationId);
         
       if (error) throw error;
+      
+      // 3. Send rejection email
+      await sendEmailNotification(application, 'rejection');
+      
       return applicationId;
     },
     onSuccess: () => {
@@ -342,6 +371,7 @@ const AdminApplicationsPage: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             icon={Mail}
+                            onClick={() => sendEmailNotification(application, 'approval')}
                             className="text-indigo-600"
                           >
                             Resend Invite
