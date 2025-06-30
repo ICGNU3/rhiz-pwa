@@ -29,19 +29,19 @@ export default function Stats({ stats, className = '' }: StatsProps) {
                 <Icon className={`w-6 h-6 ${stat.color}`} />
               </div>
               <div className="flex-1">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-2xl font-light text-gray-900 dark:text-white">
                   {stat.value}
                 </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-sm font-light text-gray-900 dark:text-white">
                   {stat.title}
                 </p>
                 {stat.description && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs font-light text-gray-600 dark:text-gray-400">
                     {stat.description}
                   </p>
                 )}
                 {stat.change && (
-                  <p className="text-xs text-green-600 font-medium mt-1">
+                  <p className="text-xs font-light text-green-600 mt-1">
                     {stat.change}
                   </p>
                 )}

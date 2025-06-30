@@ -14,16 +14,16 @@ const ErrorBorder: React.FC<ErrorBorderProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={`border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-6 text-center ${className}`}>
+    <div className={`border-2 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-6 text-center font-light ${className}`}>
       <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-red-800 dark:text-red-200 mb-2">
+      <h3 className="text-lg font-light text-red-800 dark:text-red-200 mb-2">
         Error Loading Data
       </h3>
-      <p className="text-red-600 dark:text-red-300 mb-4">
+      <p className="text-red-600 dark:text-red-300 mb-4 font-light">
         {message}
       </p>
       {onRetry && (
-        <Button variant="outline" onClick={onRetry} icon={RefreshCw}>
+        <Button variant="outline" onClick={onRetry} icon={RefreshCw} className="font-light">
           Try Again
         </Button>
       )}

@@ -13,7 +13,7 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className = '' }) => {
   };
 
   return (
-    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600 ${sizes[size]} ${className}`} />
+    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-aqua ${sizes[size]} ${className}`} />
   );
 };
 

@@ -73,7 +73,7 @@ const ApplyPage: React.FC = () => {
   // Render pending application message
   if (isPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
@@ -82,7 +82,7 @@ const ApplyPage: React.FC = () => {
                 alt="Rhiz Logo" 
                 className="w-12 h-12"
               />
-              <span className="text-3xl font-bold text-white">Rhiz</span>
+              <span className="text-3xl font-light text-white">Rhiz</span>
             </Link>
           </div>
 
@@ -91,17 +91,17 @@ const ApplyPage: React.FC = () => {
               <Loader2 className="w-8 h-8 text-white animate-spin" />
             </div>
             
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-light text-gray-900 mb-4">
               Application Pending
             </h2>
             
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 font-light mb-6">
               Your application is currently under review. We'll notify you once you're approved for the Rhiz alpha.
             </p>
 
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-lavender/10 to-emerald/10 rounded-lg border border-lavender/20">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 font-light">
                   Only 100 Root Members will shape Rhiz's future. We're carefully reviewing each application to ensure a diverse and engaged community.
                 </p>
               </div>
@@ -109,7 +109,7 @@ const ApplyPage: React.FC = () => {
               <Link to="/">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full font-light"
                 >
                   Return to Home
                 </Button>
@@ -124,7 +124,7 @@ const ApplyPage: React.FC = () => {
   // Render success message
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
             <Link to="/" className="flex items-center justify-center space-x-3 mb-8">
@@ -133,7 +133,7 @@ const ApplyPage: React.FC = () => {
                 alt="Rhiz Logo" 
                 className="w-12 h-12"
               />
-              <span className="text-3xl font-bold text-white">Rhiz</span>
+              <span className="text-3xl font-light text-white">Rhiz</span>
             </Link>
           </div>
 
@@ -142,17 +142,17 @@ const ApplyPage: React.FC = () => {
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
             
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-light text-gray-900 mb-4">
               Application Received
             </h2>
             
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 font-light mb-6">
               Thank you your application is under review. Only 100 Root Members will shape Rhiz's future. 34 spots remaining.
             </p>
 
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-emerald/10 to-aqua/10 rounded-lg border border-emerald/20">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 font-light">
                   We've sent a confirmation to your email. We'll be in touch soon about your application status.
                 </p>
               </div>
@@ -160,7 +160,7 @@ const ApplyPage: React.FC = () => {
               <Link to="/">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full font-light"
                 >
                   Return to Home
                 </Button>
@@ -173,7 +173,7 @@ const ApplyPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-aqua to-lavender py-12 px-4 sm:px-6 lg:px-8 font-sans font-light">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -183,16 +183,16 @@ const ApplyPage: React.FC = () => {
               alt="Rhiz Logo" 
               className="w-12 h-12"
             />
-            <span className="text-3xl font-bold text-white">Rhiz</span>
+            <span className="text-3xl font-light text-white">Rhiz</span>
           </Link>
           
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <h1 className="text-4xl font-light text-white mb-4">
             Purpose in mind. People in reach. Movement in motion.
           </h1>
-          <p className="text-xl text-white/90 max-w-3xl mx-auto mb-2">
+          <p className="text-xl font-light text-white/90 max-w-3xl mx-auto mb-2">
             High-context relationship intelligence for builders who strengthen meaningful connections and grow their circle of trust around what matters most.
           </p>
-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+          <p className="text-lg font-light text-white/80 max-w-2xl mx-auto">
             Coordination infrastructure for the people building what's next.
           </p>
         </div>
@@ -207,9 +207,11 @@ const ApplyPage: React.FC = () => {
           ].map((feature, index) => (
             <Card key={index} className="p-6 text-center bg-white/10 backdrop-blur-md border border-emerald/50" hover>
               <div className="w-12 h-12 bg-gradient-to-br from-emerald to-aqua rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white font-bold">{index + 1}</span>
+                <span className="text-white font-light">
+                  {index + 1}
+                </span>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className="text-lg font-light text-white mb-2">
                 {feature}
               </h3>
             </Card>
@@ -218,7 +220,7 @@ const ApplyPage: React.FC = () => {
 
         {/* Built for Relationship Architects */}
         <Card className="p-8 mb-12 bg-gradient-to-r from-emerald/10 to-lavender/10 backdrop-blur-md border border-emerald/50">
-          <h2 className="text-2xl font-bold text-center text-white mb-6">
+          <h2 className="text-2xl font-light text-center text-white mb-6">
             Built for Relationship Architects
           </h2>
           <div className="flex flex-wrap justify-center gap-3">
@@ -233,7 +235,7 @@ const ApplyPage: React.FC = () => {
             ].map((role, index) => (
               <span 
                 key={index}
-                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium shadow-sm border border-white/30"
+                className="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-light shadow-sm border border-white/30"
               >
                 {role}
               </span>
@@ -244,11 +246,11 @@ const ApplyPage: React.FC = () => {
         {/* Application Form */}
         <Card className="p-8 bg-white/90 backdrop-blur-md border border-emerald/50">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-light text-gray-900">
               Apply for Alpha Access
             </h2>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">Step {step} of 2</span>
+              <span className="text-sm font-light text-gray-600">Step {step} of 2</span>
               <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-aqua to-emerald rounded-full transition-all duration-300"
@@ -262,7 +264,7 @@ const ApplyPage: React.FC = () => {
             <form onSubmit={handleNextStep} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="name" className="block text-sm font-light text-gray-700 mb-2">
                     Name *
                   </label>
                   <input
@@ -272,12 +274,12 @@ const ApplyPage: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-light text-gray-700 mb-2">
                     Email *
                   </label>
                   <input
@@ -287,12 +289,12 @@ const ApplyPage: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="organization" className="block text-sm font-light text-gray-700 mb-2">
                     Organization / Role *
                   </label>
                   <input
@@ -302,7 +304,7 @@ const ApplyPage: React.FC = () => {
                     required
                     value={formData.organization}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
                 </div>
               </div>
@@ -311,7 +313,7 @@ const ApplyPage: React.FC = () => {
                 <Button
                   type="submit"
                   icon={ArrowRight}
-                  className="bg-gradient-to-r from-aqua via-emerald to-lavender text-white"
+                  className="bg-gradient-to-r from-aqua via-emerald to-lavender text-white font-light"
                 >
                   Next
                 </Button>
@@ -320,7 +322,7 @@ const ApplyPage: React.FC = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 font-light">
                   <div className="flex items-center space-x-2">
                     <X className="w-5 h-5" />
                     <span>{error}</span>
@@ -330,7 +332,7 @@ const ApplyPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="vertical" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="vertical" className="block text-sm font-light text-gray-700 mb-2">
                     Vertical *
                   </label>
                   <select
@@ -339,7 +341,7 @@ const ApplyPage: React.FC = () => {
                     required
                     value={formData.vertical}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   >
                     <option value="Founder">Founder</option>
                     <option value="Non-Profit">Non-Profit</option>
@@ -352,7 +354,7 @@ const ApplyPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="reason" className="block text-sm font-light text-gray-700 mb-2">
                     Why you'll energize your circle of trust *
                   </label>
                   <textarea
@@ -362,12 +364,12 @@ const ApplyPage: React.FC = () => {
                     required
                     value={formData.reason}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="referral" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="referral" className="block text-sm font-light text-gray-700 mb-2">
                     Referral Code (optional)
                   </label>
                   <input
@@ -376,7 +378,7 @@ const ApplyPage: React.FC = () => {
                     type="text"
                     value={formData.referral}
                     onChange={handleChange}
-                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:ring-2 focus:ring-emerald focus:border-emerald"
+                    className="block w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 font-light focus:ring-2 focus:ring-emerald focus:border-emerald"
                   />
                 </div>
               </div>
@@ -386,13 +388,14 @@ const ApplyPage: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setStep(1)}
+                  className="font-light"
                 >
                   Back
                 </Button>
                 <Button
                   type="submit"
                   loading={loading}
-                  className="bg-gradient-to-r from-aqua via-emerald to-lavender text-white"
+                  className="bg-gradient-to-r from-aqua via-emerald to-lavender text-white font-light"
                 >
                   Submit Application
                 </Button>
