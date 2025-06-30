@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Network, Shield, Brain, Target, Users, Zap, MessageSquare } from 'lucide-react';
+import { ArrowRight, Network, Shield, Brain, Target, Users, Zap, MessageSquare, TrendingUp, Eye, Lightbulb } from 'lucide-react';
 import Button from '../components/Button';
 
 const Landing: React.FC = () => {
@@ -30,7 +30,8 @@ const Landing: React.FC = () => {
               </span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Rhiz fuses your phone, inbox, and social contacts into a goal-driven graph. It declutters and enriches them with interaction history, sentiment, and shared objectives so you instantly know who to reach and why.
+              Rhiz transforms scattered contacts into an intelligent relationship engine. Get AI-powered trust scores, 
+              goal-driven matching, and predictive insights that reveal who to reach, when to connect, and why it matters.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link to="/apply">
@@ -38,6 +39,22 @@ const Landing: React.FC = () => {
                   Apply for Alpha Access
                 </Button>
               </Link>
+            </div>
+            
+            {/* Social Proof */}
+            <div className="mt-8 flex items-center justify-center space-x-8 text-sm text-gray-500">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4" />
+                <span>Enterprise Security</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Brain className="w-4 h-4" />
+                <span>AI-Powered Insights</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4" />
+                <span>Predictive Analytics</span>
+              </div>
             </div>
           </div>
         </div>
@@ -48,10 +65,10 @@ const Landing: React.FC = () => {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Goals drive everything
+              Intelligence meets relationships
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Define what you're working toward and Rhiz matches you with the best people in your graph.
+              Move beyond static contact lists. Rhiz creates a living, breathing network that grows smarter with every interaction.
             </p>
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
@@ -64,7 +81,7 @@ const Landing: React.FC = () => {
                   Living Network Graph
                 </dt>
                 <dd className="mt-1 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Your contacts become a unified, intelligent graph that reveals hidden connections and opportunities.
+                  Your contacts become a unified, intelligent graph that reveals hidden connections, mutual relationships, and strategic opportunities.
                 </dd>
               </div>
               <div className="flex flex-col items-center text-center">
@@ -75,7 +92,7 @@ const Landing: React.FC = () => {
                   Goal-Driven Matching
                 </dt>
                 <dd className="mt-1 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Whether fundraising, hiring, or building partnerships, get matched with the right people instantly.
+                  Whether fundraising, hiring, or building partnerships, AI instantly matches you with the right people based on your objectives.
                 </dd>
               </div>
               <div className="flex flex-col items-center text-center">
@@ -86,7 +103,7 @@ const Landing: React.FC = () => {
                   AI Relationship Assistant
                 </dt>
                 <dd className="mt-1 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Uncover hidden opportunities, craft personalized outreach, and spot at-risk relationships.
+                  Uncover hidden opportunities, predict relationship risks, and get personalized outreach strategies powered by advanced AI.
                 </dd>
               </div>
             </dl>
@@ -94,19 +111,19 @@ const Landing: React.FC = () => {
         </div>
       </div>
 
-      {/* Trust & Intelligence */}
+      {/* Advanced Features */}
       <div className="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl lg:text-center">
             <h2 className="text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400">
-              Trust-First Intelligence
+              Beyond Contact Management
             </h2>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Every contact carries a trust score
+              Trust scores, predictive insights, and relationship intelligence
             </p>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Built from interaction history, sentiment data, and shared goals—so you always know 
-              where your relationship health stands.
+              Every contact gets a dynamic trust score based on interaction history, response patterns, and mutual connections. 
+              See relationship health at a glance and get AI-powered recommendations.
             </p>
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
@@ -114,12 +131,23 @@ const Landing: React.FC = () => {
               <div className="relative pl-16">
                 <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
                   <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
-                    <Users className="h-6 w-6 text-white" />
+                    <Shield className="h-6 w-6 text-white" />
                   </div>
-                  Smart Deduplication & Enrichment
+                  Dynamic Trust Scoring
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Automatically merge duplicate contacts and enrich profiles with social data, job changes, and mutual connections.
+                  Real-time trust scores based on response patterns, interaction frequency, and relationship depth. Spot at-risk connections before they go dormant.
+                </dd>
+              </div>
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+                    <Eye className="h-6 w-6 text-white" />
+                  </div>
+                  Predictive Relationship Analytics
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
+                  AI predicts optimal outreach timing, identifies dormant high-value relationships, and suggests strategic introductions.
                 </dd>
               </div>
               <div className="relative pl-16">
@@ -127,32 +155,87 @@ const Landing: React.FC = () => {
                   <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                     <MessageSquare className="h-6 w-6 text-white" />
                   </div>
-                  AI-Powered Outreach
+                  Intelligent Outreach Automation
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Generate personalized messages tuned to your style, with automatic follow-up scheduling and progress tracking.
+                  Generate personalized messages, schedule follow-ups, and track engagement—all tuned to your communication style and relationship context.
                 </dd>
               </div>
               <div className="relative pl-16">
                 <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
                   <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
-                    <Zap className="h-6 w-6 text-white" />
+                    <Lightbulb className="h-6 w-6 text-white" />
                   </div>
-                  Life Event Alerts
+                  Goal-Aligned Recommendations
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Get notified of job changes, anniversaries, and engagement pattern shifts that create reconnection opportunities.
+                  Set fundraising, hiring, or partnership goals and get matched with contacts who can help, plus strategic introduction paths.
                 </dd>
               </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      {/* Trust & Privacy */}
+      <div className="py-24 sm:py-32 bg-white dark:bg-gray-800">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-base font-semibold leading-7 text-indigo-600 dark:text-indigo-400">
+              Enterprise-Grade Security
+            </h2>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Your relationships, your control
+            </p>
+            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+              Built with zero-knowledge architecture and end-to-end encryption. Your relationship data stays private 
+              while you get the intelligence you need.
+            </p>
+          </div>
+          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
+            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
               <div className="relative pl-16">
                 <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
-                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-green-600">
                     <Shield className="h-6 w-6 text-white" />
                   </div>
-                  Privacy-First Architecture
+                  Zero-Knowledge Privacy
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
-                  Your data stays encrypted under your control. Integrations happen with explicit consent—you decide what's shared.
+                  End-to-end encryption ensures we can't access your decrypted relationship data. You control what's shared and with whom.
+                </dd>
+              </div>
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-green-600">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  Smart Data Enrichment
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
+                  Automatically merge duplicates, enrich profiles with public data, and track job changes—all with explicit consent.
+                </dd>
+              </div>
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-green-600">
+                    <Zap className="h-6 w-6 text-white" />
+                  </div>
+                  Seamless Integrations
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
+                  Connect LinkedIn, Gmail, Outlook, and more. Import contacts intelligently while maintaining privacy controls.
+                </dd>
+              </div>
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-green-600">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                  Relationship Health Monitoring
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300">
+                  Get alerts when relationships need attention, track engagement trends, and maintain your most valuable connections.
                 </dd>
               </div>
             </dl>
@@ -165,18 +248,24 @@ const Landing: React.FC = () => {
         <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Today: Sleek PWA. Tomorrow: Decentralized Protocol.
+              Today: Intelligent PWA. Tomorrow: Decentralized Protocol.
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-indigo-100">
-              Rhiz is preparing to evolve into a decentralized protocol with token-based incentives 
-              and support for autonomous agents—powering whole ecosystems of human and AI collaboration.
+              Rhiz is evolving into a decentralized relationship protocol with token incentives and AI agent support—
+              powering ecosystems of human and artificial intelligence collaboration.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link to="/apply">
                 <Button variant="outline" size="lg" className="bg-white text-indigo-600 hover:bg-gray-50 border-white">
-                  Apply for Alpha Access
+                  Join the Alpha
                 </Button>
               </Link>
+            </div>
+            
+            {/* Alpha Status */}
+            <div className="mt-8 inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-white font-medium">Limited Alpha • 66 spots remaining</span>
             </div>
           </div>
         </div>
