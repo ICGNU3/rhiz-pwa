@@ -3,9 +3,9 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 
+
 const PrivateAlphaRoute: React.FC = () => {
-  // TEMPORARY: Bypass all auth for development
-  console.log('Development mode: bypassing auth');
+  // TEMPORARY: In development, this route bypasses auth checks.
   return <Outlet />;
 };
 

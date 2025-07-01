@@ -27,10 +27,10 @@ export const getTrustMetrics = async () => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
+
     if (!user || userError) {
       console.warn('No authenticated user for trust metrics: returning demo data.', userError?.message);
       return demoTrustMetrics;
-    }
     }
 
     let contacts = [];
