@@ -136,67 +136,113 @@ const Import: React.FC = () => {
 
   const handleFileUpload = (uploadedFile: File) => {
     if (!uploadedFile) return;
-
-    setFile(uploadedFile);
-    
-    Papa.parse(uploadedFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        try {
-          const headers = Object.keys(results.data[0] || {});
-          setCsvHeaders(headers);
-          setParsedData(results.data as ParsedContact[]);
-          
-       // Ultra-flexible auto-mapping for ANY CSV format
-const autoMapping: ColumnMapping = {};
-headers.forEach(header => {
-  const lower = header.toLowerCase().replace(/[^a-z0-9]/g, ''); // Remove spaces, punctuation
   
-  // Name patterns - handles first_name, full name, contact name, etc.
-  if (lower.includes('name') || lower.includes('first') || lower.includes('contact') || lower.includes('person')) {
-    autoMapping[header] = 'name';
-  }
-  // Email patterns - handles email_address, e-mail, mail, etc.
-  else if (lower.includes('email') || lower.includes('mail')) {
-    autoMapping[header] = 'email';
-  }
-  // Phone patterns - handles mobile_number, cell phone, telephone, etc.
-  else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('cell') || lower.includes('tel')) {
-    autoMapping[header] = 'phone';
-  }
-  // Company patterns - handles organization, employer, workplace, etc.
-  else if (lower.includes('company') || lower.includes('org') || lower.includes('employer') || lower.includes('work')) {
-    autoMapping[header] = 'company';
-  }
-  // Title patterns - handles job_title, position, role, occupation, etc.
-  else if (lower.includes('title') || lower.includes('position') || lower.includes('job') || lower.includes('role') || lower.includes('occupation')) {
-    autoMapping[header] = 'title';
-  }
-  // Location patterns - handles address, city, location, region, etc.
-  else if (lower.includes('location') || lower.includes('city') || lower.includes('address') || lower.includes('region')) {
-    autoMapping[header] = 'location';
-  }
-  // Tags patterns - handles skills, categories, keywords, interests, etc.
-  else if (lower.includes('tag') || lower.includes('skill') || lower.includes('category') || lower.includes('keyword') || lower.includes('interest')) {
-    autoMapping[header] = 'tags';
-  }
-  // Notes patterns - handles comments, description, bio, notes, etc.
-  else if (lower.includes('note') || lower.includes('comment') || lower.includes('description') || lower.includes('bio') || lower.includes('about')) {
-    autoMapping[header] = 'notes';
-  }
-});
-          
-          setColumnMapping(autoMapping);
-          setCurrentStep(2);
-        } catch (error) {
-          console.error('Error parsing CSV:', error);
-        }
-      },
-      error: (error) => {
-        console.error('CSV parsing error:', error);
+    setFile(uploadedFile);
+  
+    // Read file as text first to detect delimiter
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvText = e.target?.result as string;
+      
+      // Debug: Show first few lines
+      console.log('First 3 lines of CSV:');
+      const firstLines = csvText.split('\n').slice(0, 3);
+      console.log(firstLines);
+      console.log('First line character codes:', firstLines[0].split('').map(c => c.charCodeAt(0)));
+  
+      // Check if it's actually a different format
+      if (firstLines[0].includes('"')) {
+        console.log('CSV contains quotes - might be quoted CSV');
       }
-    });
+  
+      // Try Papa's auto-detection first
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        // Remove delimiter specification to let Papa auto-detect
+        transformHeader: (header: string) => header.trim(),
+        complete: (results) => {
+          console.log('AUTO-DETECT Parse results:', results);
+          console.log('AUTO-DETECT Headers found:', Object.keys(results.data[0] || {}));
+          
+          // If auto-detect worked, continue
+          if (Object.keys(results.data[0] || {}).length >= 3) {
+            console.log('Auto-detect worked!');
+            
+            try {
+              // Filter out LinkedIn disclaimer rows and empty data
+              const cleanData = (results.data as ParsedContact[]).filter(row => {
+                const values = Object.values(row);
+                const hasRealData = values.some(value => 
+                  value && 
+                  typeof value === 'string' && 
+                  value.length > 0 && 
+                  !value.includes('linkedin.com') && 
+                  !value.includes('psettings') &&
+                  !value.includes('When exporting')
+                );
+                return hasRealData;
+              });
+              
+              if (cleanData.length === 0) {
+                console.error('No valid contact data found in CSV');
+                return;
+              }
+              
+              const headers = Object.keys(cleanData[0] || {});
+              console.log('Final headers:', headers);
+              setCsvHeaders(headers);
+              setParsedData(cleanData);
+              
+              // Ultra-flexible auto-mapping
+              const autoMapping: ColumnMapping = {};
+              headers.forEach(header => {
+                const lower = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                if (lower.includes('name') || lower.includes('first') || lower.includes('contact') || lower.includes('person')) {
+                  autoMapping[header] = 'name';
+                }
+                else if (lower.includes('email') || lower.includes('mail')) {
+                  autoMapping[header] = 'email';
+                }
+                else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('cell') || lower.includes('tel')) {
+                  autoMapping[header] = 'phone';
+                }
+                else if (lower.includes('company') || lower.includes('org') || lower.includes('employer') || lower.includes('work')) {
+                  autoMapping[header] = 'company';
+                }
+                else if (lower.includes('title') || lower.includes('position') || lower.includes('job') || lower.includes('role') || lower.includes('occupation')) {
+                  autoMapping[header] = 'title';
+                }
+                else if (lower.includes('location') || lower.includes('city') || lower.includes('address') || lower.includes('region')) {
+                  autoMapping[header] = 'location';
+                }
+                else if (lower.includes('tag') || lower.includes('skill') || lower.includes('category') || lower.includes('keyword') || lower.includes('interest')) {
+                  autoMapping[header] = 'tags';
+                }
+                else if (lower.includes('note') || lower.includes('comment') || lower.includes('description') || lower.includes('bio') || lower.includes('about')) {
+                  autoMapping[header] = 'notes';
+                }
+              });
+              
+              console.log('Auto-mapping result:', autoMapping);
+              setColumnMapping(autoMapping);
+              setCurrentStep(2);
+            } catch (error) {
+              console.error('Error parsing CSV:', error);
+            }
+          } else {
+            console.log('Auto-detect failed - trying manual detection...');
+            // Could add manual detection here if needed
+          }
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+        }
+      });
+    };
+  
+    reader.readAsText(uploadedFile);
   };
 
   const handleDrop = (e: React.DragEvent) => {
