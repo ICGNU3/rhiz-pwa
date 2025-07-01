@@ -1,4 +1,6 @@
+
 import { supabase } from './client';
+import { demoTrustMetrics } from '../data/demoData';
 
 export const getTrustMetrics = async () => {
   // Default empty state for trust metrics
@@ -26,34 +28,9 @@ export const getTrustMetrics = async () => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (!user || userError) {
-      console.warn('No authenticated user for trust metrics:', userError?.message);
-      
-      // Return helpful demo state for unauthenticated users
-      const now = new Date();
-      const demoTimelineData = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date(now.getTime() - (29 - i) * 24 * 60 * 60 * 1000);
-        return {
-          date: date.toISOString().split('T')[0],
-          score: 75 + Math.floor(Math.random() * 20) - 10 // Demo score variation
-        };
-      });
-
-      return {
-        ...emptyTrustState,
-        overallScore: 78,
-        timelineData: demoTimelineData,
-        lowTrustAlerts: [
-          {
-            id: 'demo-alert-1',
-            contact: 'Demo User',
-            reason: 'Sign in to see your actual relationship trust metrics and alerts',
-            trustScore: 75,
-            severity: 'low' as const,
-            action: 'Sign In',
-            timestamp: '1 hour ago'
-          }
-        ]
-      };
+      console.warn('No authenticated user for trust metrics: returning demo data.', userError?.message);
+      return demoTrustMetrics;
+    }
     }
 
     let contacts = [];
