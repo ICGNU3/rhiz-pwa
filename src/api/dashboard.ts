@@ -1,3 +1,4 @@
+// Replace your src/api/dashboard.ts with this temporarily
 import { supabase } from './client';
 
 export interface DashboardData {
@@ -9,6 +10,49 @@ export interface DashboardData {
   recentActivity: { id: string; text: string; time: string }[];
 }
 
+export const getDashboardStats = async (): Promise<DashboardData> => {
+  // TEMPORARY: Return mock data to see your UI in action
+  console.log('🚀 Using mock dashboard data for development');
+  
+  return {
+    networkHealth: 87,
+    totalContacts: 247,
+    totalGoals: 8,
+    overallTrust: 82,
+    upcomingActions: [
+      { 
+        id: 'action-1', 
+        title: 'Follow up with Sarah Chen about AI partnership', 
+        due: 'Today' 
+      },
+      { 
+        id: 'action-2', 
+        title: 'Schedule coffee with Michael Rodriguez', 
+        due: 'Tomorrow' 
+      },
+      { 
+        id: 'action-3', 
+        title: 'Send introduction to Emma Wilson & TechCorp team', 
+        due: 'This week' 
+      },
+      { 
+        id: 'action-4', 
+        title: 'Review Q1 networking goals progress', 
+        due: 'Next week' 
+      }
+    ],
+    recentActivity: [
+      { id: 'activity-1', text: 'Connected with Alex Thompson from YC Demo Day', time: '2 hours ago' },
+      { id: 'activity-2', text: 'Completed networking goal: "Meet 5 AI founders"', time: '1 day ago' },
+      { id: 'activity-3', text: 'Added 4 new contacts from Stanford AI conference', time: '2 days ago' },
+      { id: 'activity-4', text: 'Updated relationship notes for 12 key contacts', time: '3 days ago' },
+      { id: 'activity-5', text: 'Scheduled follow-up with Maria Garcia (potential investor)', time: '5 days ago' }
+    ]
+  };
+};
+
+// Keep the original function commented out for later restoration
+/*
 export const getDashboardStats = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -121,3 +165,4 @@ function formatTimeAgo(date: Date): string {
   if (diffDays < 7) return `${diffDays} days ago`;
   return `${diffWeeks} weeks ago`;
 }
+*/
