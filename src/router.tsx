@@ -1,9 +1,9 @@
-
 import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import PrivateAlphaRoute from './components/PrivateAlphaRoute';
 import PublicRoute from './components/PublicRoute';
 import Layout from './components/Layout';
+import NetworkAnalytics from './pages/NetworkAnalytics';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Contacts = lazy(() => import('./pages/Contacts'));
@@ -35,6 +35,7 @@ const AppRouter = () => {
           <Route path="network" element={<Network />} />
           <Route path="settings" element={<Settings />} />
           <Route path="trust" element={<Trust />} />
+          <Route path="network-analytics" element={<NetworkAnalytics />} />
         </Route>
       </Route>
 

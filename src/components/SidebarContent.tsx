@@ -4,7 +4,8 @@ import {
   Moon,
   Sun,
   Download,
-  MessageSquare
+  MessageSquare,
+  BarChart2
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
