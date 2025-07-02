@@ -1,6 +1,7 @@
 // Utility helper functions
 import { TRUST_SCORE_RANGES, RELATIONSHIP_TYPES } from './constants';
 import type { Contact, Goal } from '../types';
+import { getRelationshipHealthScore } from './relationshipHealth';
 
 export const formatDate = (date: string | Date): string => {
   return new Date(date).toLocaleDateString('en-US', {
@@ -181,3 +182,103 @@ export const getInitials = (name: string): string => {
     .toUpperCase()
     .slice(0, 2);
 };
+
+// Advanced contact filter helper
+export interface ContactFilters {
+  health: string[];
+  trustScore: [number, number];
+  tags: string[];
+  lastContacted: { from: string; to: string };
+  hasEmail: boolean;
+  hasPhone: boolean;
+  recentlyAdded: boolean;
+}
+
+export function applyContactFilters(
+  contacts: Contact[],
+  filters: ContactFilters,
+  searchTerm: string
+): Contact[] {
+  return contacts.filter(contact => {
+    // Search term (name, company, title, tags)
+    const matchesSearch =
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (contact.tags && contact.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+
+    // Health filter
+    let matchesHealth = true;
+    if (filters.health.length > 0) {
+      const score = getRelationshipHealthScore(contact);
+      let label = 'Healthy';
+      if (score >= 70) label = 'Healthy';
+      else if (score >= 40) label = 'At Risk';
+      else label = 'Stale';
+      matchesHealth = filters.health.includes(label);
+    }
+
+    // Trust score filter
+    let matchesTrust = true;
+    if (filters.trustScore[0] > 0 || filters.trustScore[1] < 100) {
+      const score = contact.trust_score || 0;
+      matchesTrust = score >= filters.trustScore[0] && score <= filters.trustScore[1];
+    }
+
+    // Tags filter
+    let matchesTags = true;
+    if (filters.tags.length > 0) {
+      matchesTags = contact.tags && filters.tags.some(tag => contact.tags.includes(tag));
+    }
+
+    // Last contacted filter
+    let matchesLastContacted = true;
+    if (filters.lastContacted.from || filters.lastContacted.to) {
+      if (!contact.lastContacted) matchesLastContacted = false;
+      else {
+        const date = new Date(contact.lastContacted);
+        if (filters.lastContacted.from) {
+          const from = new Date(filters.lastContacted.from);
+          if (date < from) matchesLastContacted = false;
+        }
+        if (filters.lastContacted.to) {
+          const to = new Date(filters.lastContacted.to);
+          if (date > to) matchesLastContacted = false;
+        }
+      }
+    }
+
+    // Has email
+    let matchesEmail = true;
+    if (filters.hasEmail) {
+      matchesEmail = !!contact.email;
+    }
+    // Has phone
+    let matchesPhone = true;
+    if (filters.hasPhone) {
+      matchesPhone = !!contact.phone;
+    }
+    // Recently added (last 14 days)
+    let matchesRecentlyAdded = true;
+    if (filters.recentlyAdded) {
+      if (!contact.created_at) matchesRecentlyAdded = false;
+      else {
+        const created = new Date(contact.created_at);
+        const now = new Date();
+        const diffDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
+        matchesRecentlyAdded = diffDays <= 14;
+      }
+    }
+
+    return (
+      matchesSearch &&
+      matchesHealth &&
+      matchesTrust &&
+      matchesTags &&
+      matchesLastContacted &&
+      matchesEmail &&
+      matchesPhone &&
+      matchesRecentlyAdded
+    );
+  });
+}
