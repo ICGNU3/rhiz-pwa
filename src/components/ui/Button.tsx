@@ -5,6 +5,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   icon?: React.ElementType;
   loading?: boolean;
+  pressed?: boolean;
+  expanded?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -15,6 +17,8 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
+  pressed,
+  expanded,
   ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-light rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -37,6 +41,10 @@ const Button: React.FC<ButtonProps> = ({
     <button
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
+      aria-pressed={pressed}
+      aria-expanded={expanded}
+      aria-busy={loading}
+      aria-live={loading ? 'polite' : undefined}
       {...props}
     >
       {loading ? (

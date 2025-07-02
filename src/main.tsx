@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { LoadingProvider } from './hooks/useLoadingContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { initializePerformanceMonitoring } from './utils/performance';
 import App from './App';
 import './index.css';
@@ -66,18 +67,20 @@ if (container) {
   const root = createRoot(container);
   
   root.render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <LoadingProvider>
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <LoadingProvider>
+            <NotificationProvider>
               <App />
-            </LoadingProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </StrictMode>
-  );
+            </NotificationProvider>
+          </LoadingProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </StrictMode>
+);
 
   // Remove placeholder after render
   removePlaceholder();

@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { deferredPrompt } from '../main';
 import usePrefetchRoute from '../hooks/usePrefetchRoute';
 import LoadingScreen from './LoadingScreen';
 import SearchBar from './SearchBar';
+import NotificationCenter from './NotificationCenter';
 
 // Lazy load the sidebar content to improve initial load time
 const SidebarContent = lazy(() => import('./SidebarContent'));
@@ -30,6 +32,7 @@ const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, clearAllNotifications } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -127,6 +130,17 @@ const Layout: React.FC = () => {
             </div>
             
             <div className="flex-1 md:hidden" />
+            
+            {/* Notification Center */}
+            <div className="flex items-center space-x-2">
+              <NotificationCenter
+                notifications={notifications}
+                onMarkAsRead={markAsRead}
+                onMarkAllAsRead={markAllAsRead}
+                onDelete={deleteNotification}
+                onClearAll={clearAllNotifications}
+              />
+            </div>
           </div>
         </header>
 
