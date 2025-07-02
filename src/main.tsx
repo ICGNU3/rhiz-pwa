@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { LoadingProvider } from './hooks/useLoadingContext';
+import { initializePerformanceMonitoring } from './utils/performance';
 import App from './App';
 import './index.css';
 
@@ -19,6 +20,9 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// Initialize performance monitoring
+initializePerformanceMonitoring();
 
 // Install prompt handling
 let deferredPrompt: any;

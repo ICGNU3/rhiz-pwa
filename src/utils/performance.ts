@@ -225,3 +225,340 @@ export function batchWebGLDrawCalls(
   
   processBatch();
 }
+
+import React from 'react';
+
+// Performance optimization utilities for Rhiz PWA
+// Includes caching, lazy loading, and performance monitoring
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
+
+export interface PerformanceMetric {
+  name: string;
+  duration: number;
+  timestamp: number;
+  metadata?: Record<string, any>;
+}
+
+class Cache {
+  private storage = new Map<string, CacheEntry<any>>();
+  private maxSize: number;
+
+  constructor(maxSize: number = 100) {
+    this.maxSize = maxSize;
+  }
+
+  set<T>(key: string, data: T, ttl: number = 5 * 60 * 1000): void {
+    // Clean expired entries
+    this.cleanup();
+
+    // Remove oldest entry if cache is full
+    if (this.storage.size >= this.maxSize) {
+      const oldestKey = this.storage.keys().next().value || '';
+      this.storage.delete(oldestKey);
+    }
+
+    this.storage.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.storage.get(key);
+    if (!entry) return null;
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.storage.delete(key);
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  has(key: string): boolean {
+    return this.get(key) !== null;
+  }
+
+  delete(key: string): boolean {
+    return this.storage.delete(key);
+  }
+
+  clear(): void {
+    this.storage.clear();
+  }
+
+  size(): number {
+    this.cleanup();
+    return this.storage.size;
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.storage.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.storage.delete(key);
+      }
+    }
+  }
+}
+
+// Global cache instance
+export const cache = new Cache();
+
+// API response caching
+export const cachedFetch = async <T>(
+  key: string,
+  fetchFn: () => Promise<T>,
+  ttl: number = 5 * 60 * 1000
+): Promise<T> => {
+  // Check cache first
+  const cached = cache.get<T>(key);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch fresh data
+  const data = await fetchFn();
+  cache.set(key, data, ttl);
+  return data;
+};
+
+
+
+// Component lazy loading with preloading
+export const lazyLoadComponent = <T extends React.ComponentType<any>>(
+  importFn: () => Promise<{ default: T }>,
+  preload = false
+) => {
+  const Component = React.lazy(importFn);
+
+  if (preload) {
+    // Preload the component
+    importFn();
+  }
+
+  return Component;
+};
+
+// Performance monitoring
+class PerformanceMonitor {
+  private metrics: PerformanceMetric[] = [];
+  private observers: Map<string, PerformanceObserver> = new Map();
+
+  startTimer(name: string): () => void {
+    const start = performance.now();
+    return () => {
+      const duration = performance.now() - start;
+      this.recordMetric(name, duration);
+    };
+  }
+
+  recordMetric(name: string, duration: number, metadata?: Record<string, any>): void {
+    const metric: PerformanceMetric = {
+      name,
+      duration,
+      timestamp: Date.now(),
+      metadata
+    };
+
+    this.metrics.push(metric);
+
+    // Keep only last 100 metrics
+    if (this.metrics.length > 100) {
+      this.metrics.shift();
+    }
+
+    // Log in development
+    if (import.meta.env.DEV) {
+      console.log(`Performance: ${name} took ${duration.toFixed(2)}ms`, metadata);
+    }
+  }
+
+  getMetrics(name?: string): PerformanceMetric[] {
+    if (name) {
+      return this.metrics.filter(m => m.name === name);
+    }
+    return [...this.metrics];
+  }
+
+  getAverageMetric(name: string): number {
+    const metrics = this.getMetrics(name);
+    if (metrics.length === 0) return 0;
+    
+    const total = metrics.reduce((sum, m) => sum + m.duration, 0);
+    return total / metrics.length;
+  }
+
+  clearMetrics(): void {
+    this.metrics = [];
+  }
+
+  // Monitor long tasks
+  startLongTaskMonitoring(): void {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.duration > 50) { // Tasks longer than 50ms
+            this.recordMetric('long-task', entry.duration, {
+              startTime: entry.startTime,
+              name: entry.name
+            });
+          }
+        });
+      });
+
+      observer.observe({ entryTypes: ['longtask'] });
+      this.observers.set('longtask', observer);
+    }
+  }
+
+  // Monitor memory usage
+  startMemoryMonitoring(): void {
+    if ('memory' in performance) {
+      setInterval(() => {
+        const memory = (performance as any).memory;
+        this.recordMetric('memory-usage', memory.usedJSHeapSize, {
+          total: memory.totalJSHeapSize,
+          limit: memory.jsHeapSizeLimit
+        });
+      }, 30000); // Every 30 seconds
+    }
+  }
+
+  // Monitor network requests
+  startNetworkMonitoring(): void {
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.entryType === 'resource') {
+            const resourceEntry = entry as PerformanceResourceTiming;
+            this.recordMetric('network-request', resourceEntry.duration, {
+              name: resourceEntry.name,
+              initiatorType: resourceEntry.initiatorType,
+              transferSize: (resourceEntry as any).transferSize || 0
+            });
+          }
+        });
+      });
+
+      observer.observe({ entryTypes: ['resource'] });
+      this.observers.set('resource', observer);
+    }
+  }
+
+  stopMonitoring(): void {
+    this.observers.forEach(observer => observer.disconnect());
+    this.observers.clear();
+  }
+}
+
+export const performanceMonitor = new PerformanceMonitor();
+
+// Resource preloading
+export const preloadResource = (href: string, as: string): void => {
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.href = href;
+  link.as = as;
+  document.head.appendChild(link);
+};
+
+// Critical CSS inlining
+export const inlineCriticalCSS = (css: string): void => {
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+};
+
+// Bundle size monitoring
+export const getBundleSize = (): number => {
+  if ('performance' in window) {
+    const entries = performance.getEntriesByType('resource');
+    const jsEntries = entries.filter(entry => 
+      entry.name.includes('.js') || entry.name.includes('.mjs')
+    );
+    
+    return jsEntries.reduce((total, entry) => {
+      return total + ((entry as any).transferSize || 0);
+    }, 0);
+  }
+  return 0;
+};
+
+// Service Worker performance
+export const measureServiceWorkerPerformance = async (): Promise<number> => {
+  if ('serviceWorker' in navigator) {
+    const start = performance.now();
+    await navigator.serviceWorker.ready;
+    const duration = performance.now() - start;
+    performanceMonitor.recordMetric('service-worker-ready', duration);
+    return duration;
+  }
+  return 0;
+};
+
+// PWA install performance
+export const measurePWAInstallPerformance = (): void => {
+  window.addEventListener('beforeinstallprompt', () => {
+    performanceMonitor.recordMetric('pwa-install-prompt', 0, {
+      type: 'beforeinstallprompt'
+    });
+  });
+
+  window.addEventListener('appinstalled', () => {
+    performanceMonitor.recordMetric('pwa-installed', 0, {
+      type: 'appinstalled'
+    });
+  });
+};
+
+// Initialize performance monitoring
+export const initializePerformanceMonitoring = (): void => {
+  // Start monitoring
+  performanceMonitor.startLongTaskMonitoring();
+  performanceMonitor.startMemoryMonitoring();
+  performanceMonitor.startNetworkMonitoring();
+  measurePWAInstallPerformance();
+
+  // Monitor page load performance
+  window.addEventListener('load', () => {
+    if ('performance' in window) {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      if (navigation) {
+        performanceMonitor.recordMetric('page-load', navigation.loadEventEnd - navigation.loadEventStart);
+        performanceMonitor.recordMetric('dom-content-loaded', navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart);
+        performanceMonitor.recordMetric('first-paint', navigation.loadEventEnd - navigation.fetchStart);
+      }
+    }
+  });
+};
+
+// React performance optimization hooks
+export const usePerformanceTimer = (name: string) => {
+  const startTimer = React.useCallback(() => {
+    return performanceMonitor.startTimer(name);
+  }, [name]);
+
+  return startTimer;
+};
+
+export const useDebouncedCallback = <T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number
+) => {
+  return React.useCallback(debounce(callback, delay), [callback, delay]);
+};
+
+export const useThrottledCallback = <T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number
+) => {
+  return React.useCallback(throttle(callback, delay), [callback, delay]);
+};

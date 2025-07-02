@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { useTheme } from './context/ThemeContext';
 import AppRouter from './router';
 import LoadingScreen from './components/LoadingScreen';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 function App() {
   const { theme } = useTheme();
@@ -15,6 +16,7 @@ function App() {
             <AppRouter />
           </Suspense>
         </BrowserRouter>
+        <PWAInstallPrompt />
       </div>
     </div>
   );
