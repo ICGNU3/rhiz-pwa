@@ -1,12 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '../ui/Button';
+import { useContextualSuggestions } from '../../hooks/useContextualSuggestions';
 
 interface ContactFormProps { 
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   loading?: boolean;
 }
 
+// Define FormState type
+interface FormState {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  title: string;
+  location: string;
+  tags: string[];
+  notes: string;
+}
+
 export default function ContactForm({ onSubmit, loading = false }: ContactFormProps) {
+  const { smartDefaults } = useContextualSuggestions('contacts');
+  const [form, setForm] = useState<FormState>(() => ({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    title: '',
+    location: '',
+    tags: [],
+    notes: '',
+  }));
+
+  useEffect(() => {
+    if ((!form.tags || form.tags.length === 0) && smartDefaults.tag) {
+      setForm((f: FormState) => ({ ...f, tags: [smartDefaults.tag] }));
+    }
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

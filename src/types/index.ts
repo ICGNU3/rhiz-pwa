@@ -14,6 +14,7 @@ export interface Contact {
   phone?: string;
   company: string;
   title: string;
+  avatar?: string;
   location?: string;
   notes?: string;
   tags: string[];
@@ -27,6 +28,7 @@ export interface Contact {
   enriched?: boolean;
   created_at?: string;
   updated_at?: string;
+  lastContacted?: Date;
 }
 
 export interface Goal {
@@ -87,6 +89,7 @@ export interface UserSettings {
     learningMode: string;
     personalizedRecommendations: boolean;
   };
+  userType?: 'founder' | 'nonprofit' | 'consultant' | 'other';
   created_at?: string;
   updated_at?: string;
 }

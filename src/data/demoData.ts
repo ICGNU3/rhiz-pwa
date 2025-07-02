@@ -22,7 +22,8 @@ export const demoContacts: Contact[] = [
     source: 'conference',
     enriched: true,
     created_at: '2023-12-01T09:00:00Z',
-    updated_at: '2024-01-15T10:30:00Z'
+    updated_at: '2024-01-15T10:30:00Z',
+    lastContacted: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
   },
   {
     id: '2',
@@ -44,7 +45,8 @@ export const demoContacts: Contact[] = [
     source: 'previous-company',
     enriched: true,
     created_at: '2023-11-15T08:00:00Z',
-    updated_at: '2024-01-10T14:00:00Z'
+    updated_at: '2024-01-10T14:00:00Z',
+    lastContacted: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000) // 35 days ago
   },
   {
     id: '3',
@@ -66,7 +68,8 @@ export const demoContacts: Contact[] = [
     source: 'project',
     enriched: true,
     created_at: '2023-10-20T11:00:00Z',
-    updated_at: '2024-01-08T16:30:00Z'
+    updated_at: '2024-01-08T16:30:00Z',
+    lastContacted: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) // 60 days ago
   },
   {
     id: '4',
@@ -88,7 +91,8 @@ export const demoContacts: Contact[] = [
     source: 'event',
     enriched: false,
     created_at: '2023-12-15T15:00:00Z',
-    updated_at: '2024-01-05T13:00:00Z'
+    updated_at: '2024-01-05T13:00:00Z',
+    lastContacted: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) // 15 days ago
   },
   {
     id: '5',
@@ -110,7 +114,8 @@ export const demoContacts: Contact[] = [
     source: 'referral',
     enriched: false,
     created_at: '2023-12-20T10:00:00Z',
-    updated_at: '2024-01-12T11:00:00Z'
+    updated_at: '2024-01-12T11:00:00Z',
+    lastContacted: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
   },
   {
     id: '6',
@@ -132,7 +137,8 @@ export const demoContacts: Contact[] = [
     source: 'project',
     enriched: false,
     created_at: '2023-11-10T14:00:00Z',
-    updated_at: '2024-01-03T09:00:00Z'
+    updated_at: '2024-01-03T09:00:00Z',
+    lastContacted: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
   },
   {
     id: '7',
@@ -154,7 +160,8 @@ export const demoContacts: Contact[] = [
     source: 'meetup',
     enriched: false,
     created_at: '2023-12-05T16:00:00Z',
-    updated_at: '2024-01-07T15:00:00Z'
+    updated_at: '2024-01-07T15:00:00Z',
+    lastContacted: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
   },
   {
     id: '8',
@@ -176,7 +183,8 @@ export const demoContacts: Contact[] = [
     source: 'referral',
     enriched: false,
     created_at: '2023-11-25T13:00:00Z',
-    updated_at: '2024-01-01T12:00:00Z'
+    updated_at: '2024-01-01T12:00:00Z',
+    lastContacted: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
   }
 ];
 
@@ -372,7 +380,8 @@ export const demoUserSettings: UserSettings = {
     autoSuggestions: true,
     learningMode: 'adaptive',
     personalizedRecommendations: true
-  }
+  },
+  userType: 'founder'
 };
 
 export const demoUserStats = {

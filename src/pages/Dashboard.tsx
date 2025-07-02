@@ -7,12 +7,17 @@ import SuggestedActions from '../components/dashboard/SuggestedActions';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import { getDashboardStats } from '../api/dashboard';
+import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
+import { useState } from 'react';
 
 const Dashboard: React.FC = () => {  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: getDashboardStats,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const { suggestions } = useContextualSuggestions('dashboard');
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   if (isLoading) {
     return (
@@ -44,6 +49,17 @@ const Dashboard: React.FC = () => {  const { data, isLoading, error, refetch } =
       <div>        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-gray-500 dark:text-gray-400">Here's a snapshot of your network.</p>
       </div>
+
+      {/* Contextual Suggestions Panel */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border border-blue-200 shadow flex flex-col gap-2 relative">
+          <button className="absolute top-2 right-2 text-xs text-blue-500" onClick={() => setShowSuggestions(false)} aria-label="Dismiss suggestions">&times;</button>
+          <div className="font-semibold text-blue-900 mb-1">Suggestions for you</div>
+          {suggestions.map((s, i) => (
+            <div key={i} className="text-sm text-blue-800">{s}</div>
+          ))}
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
