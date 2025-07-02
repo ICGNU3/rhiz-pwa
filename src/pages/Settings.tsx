@@ -208,6 +208,13 @@ const Settings: React.FC = () => {
       status: 'available'
     },
     { 
+      key: 'x', 
+      name: 'X (Twitter)', 
+      icon: Globe,
+      description: 'Import followers and engagement from X (Twitter)',
+      status: 'available'
+    },
+    { 
       key: 'calendly', 
       name: 'Calendly', 
       icon: Calendar, 
@@ -590,7 +597,13 @@ const Settings: React.FC = () => {
                             variant={isConnected ? 'outline' : 'primary'}
                             size="sm"
                             disabled={provider.status === 'coming-soon'}
-                            onClick={() => handleSettingChange('integrations', provider.key, !isConnected)}
+                            onClick={() => {
+                              if (provider.key === 'x' && !isConnected) {
+                                window.location.href = '/api/integrations/x/start';
+                              } else {
+                                handleSettingChange('integrations', provider.key, !isConnected);
+                              }
+                            }}
                             className="w-full"
                           >
                             {provider.status === 'coming-soon' 
@@ -770,8 +783,54 @@ const Settings: React.FC = () => {
                     </h2>
                   </div>
 
+                  {/* API Key Management (Free tier only) */}
+                  {/* TODO: Only show for free tier users */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+                      Bring Your Own OpenAI/Anthropic API Key
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Free tier users must provide their own API key for AI features. Paid users use Rhiz credits.
+                    </p>
+                    <form
+                      onSubmit={e => {
+                        e.preventDefault();
+                        if (!settings) return;
+                        const formData = new FormData(e.currentTarget);
+                        const apiKey = formData.get('apiKey') as string;
+                        handleSettingChange('ai', 'apiKey', apiKey);
+                      }}
+                      className="flex items-center gap-4"
+                    >
+                      <input
+                        name="apiKey"
+                        type="password"
+                        placeholder="sk-..."
+                        defaultValue={settings.ai.apiKey || ''}
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                      <Button type="submit" variant="primary" size="sm">
+                        Save
+                      </Button>
+                      {settings.ai.apiKey && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSettingChange('ai', 'apiKey', '')}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </form>
+                    {settings.ai.apiKey && (
+                      <div className="text-green-700 text-xs mt-2">API key saved and in use.</div>
+                    )}
+                  </div>
+
                   <div className="space-y-6">
                     {Object.entries(settings.ai).map(([key, value]) => {
+                      if (key === 'apiKey') return null;
                       const aiLabels: Record<string, { title: string; desc: string; type: 'toggle' | 'select' }> = {
                         assistantEnabled: { 
                           title: 'AI Assistant Enabled', 

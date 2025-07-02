@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Zap, Target, Users, TrendingUp, Lightbulb, ArrowRight } from 'lucide-react';
 import Card from '../Card';
 import Button from '../ui/Button';
 
 export default function GoalInsights() {
+  const [toast, setToast] = useState<string | null>(null);
   const insights = [
     {
       title: 'Smart Recommendation',
@@ -63,6 +64,12 @@ export default function GoalInsights() {
 
   return (
     <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-fade-in">
+          {toast}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg">
@@ -115,6 +122,10 @@ export default function GoalInsights() {
                     variant="outline" 
                     size="sm" 
                     className={`w-full text-xs ${insight.color.replace('text-', 'border-').replace('-600', '-300')} ${insight.color} hover:${insight.bgColor.replace('bg-', 'bg-').replace('-100', '-50')}`}
+                    onClick={() => {
+                      setToast(`${insight.action} started!`);
+                      setTimeout(() => setToast(null), 2000);
+                    }}
                   >
                     {insight.action}
                   </Button>

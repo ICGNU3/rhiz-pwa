@@ -11,7 +11,7 @@ export const getContacts = async (): Promise<Contact[]> => {
       return demoContacts;
     }
 
-    let data = [];
+    let data: any[] = [];
     let error = null;
 
     try {
@@ -21,7 +21,7 @@ export const getContacts = async (): Promise<Contact[]> => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
-      data = result.data;
+      data = result.data ?? [];
       error = result.error;
     } catch (dbError) {
       console.warn('Database error when fetching contacts:', dbError);
@@ -50,6 +50,23 @@ export const createContact = async (contactData: Omit<Contact, 'id' | 'user_id' 
       console.warn('No user for contact creation:', userError?.message);
       throw new Error('Please sign in to create contacts');
     }
+
+    // Fetch user usage and settings
+    const { data: usage } = await supabase
+      .from('user_usage')
+      .select('contacts_count')
+      .eq('user_id', user.id)
+      .single();
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('userType')
+      .eq('user_id', user.id)
+      .single();
+    const isFreeTier = !settings?.userType || settings.userType === 'free';
+    if (isFreeTier && usage?.contacts_count >= 25) {
+      throw new Error('Free tier limit reached. Upgrade to add more than 25 contacts.');
+    }
+    // TODO: Enforce on backend with RLS or trigger
 
     // Add AI-generated enhancements
     const enhancedContact = {

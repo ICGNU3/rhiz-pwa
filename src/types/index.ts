@@ -72,6 +72,7 @@ export interface UserSettings {
     google: boolean;
     outlook: boolean;
     slack: boolean;
+    x: boolean;
     calendly: boolean;
     zoom: boolean;
   };
@@ -89,6 +90,7 @@ export interface UserSettings {
     autoSuggestions: boolean;
     learningMode: string;
     personalizedRecommendations: boolean;
+    apiKey?: string;
   };
   userType?: 'founder' | 'nonprofit' | 'consultant' | 'other';
   created_at?: string;

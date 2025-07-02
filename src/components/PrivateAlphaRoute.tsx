@@ -1,12 +1,16 @@
-
-// Replace your PrivateAlphaRoute.tsx with this temporarily
 import React from 'react';
-import { Outlet } from 'react-router-dom';
-
+import { Outlet, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import LoadingScreen from './LoadingScreen';
 
 const PrivateAlphaRoute: React.FC = () => {
-  // TEMPORARY: In development, this route bypasses auth checks.
-  return <Outlet />;
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 export default PrivateAlphaRoute;

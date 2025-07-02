@@ -6,7 +6,7 @@ interface Goal {
   id: string;
   title: string;
   description: string;
-  targetDate: string;
+  target_date: string;
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
   category?: string;
@@ -48,7 +48,7 @@ export default function GoalForm({ onSubmit, editingGoal, loading = false, onCan
       setForm(f => ({ ...f, category: smartDefaults.category }));
     }
     if (!form.priority && smartDefaults.priority) {
-      setForm(f => ({ ...f, priority: smartDefaults.priority }));
+      setForm(f => ({ ...f, priority: smartDefaults.priority as 'low' | 'medium' | 'high' }));
     }
     // eslint-disable-next-line
   }, []);
@@ -89,10 +89,10 @@ export default function GoalForm({ onSubmit, editingGoal, loading = false, onCan
               Target Date *
             </label>
             <input
-              name="targetDate"
+              name="target_date"
               type="date"
               required
-              defaultValue={editingGoal?.targetDate}
+              defaultValue={editingGoal?.target_date}
               className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>

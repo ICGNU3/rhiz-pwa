@@ -17,6 +17,7 @@ import { filterContacts, sortContacts, applyContactFilters } from '../utils/help
 import { useNotifications, createNotification } from '../context/NotificationContext';
 import { useBehaviorTracking } from '../hooks/useBehaviorTracking';
 import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 // Filter state type
 interface ContactFilters {
@@ -64,6 +65,7 @@ const Contacts: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importedContacts, setImportedContacts] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   useEffect(() => {
     recordTiming(); // Track app open/check-in
@@ -108,6 +110,11 @@ const Contacts: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['network-data'] });
       setIsModalOpen(false);
+    },
+    onError: (error: any) => {
+      if (typeof error?.message === 'string' && error.message.includes('Free tier limit')) {
+        setShowUpgradePrompt(true);
+      }
     },
   });
 
@@ -508,6 +515,8 @@ const Contacts: React.FC = () => {
             </div>
           </Modal>
         )}
+
+        <UpgradePrompt open={showUpgradePrompt} onClose={() => setShowUpgradePrompt(false)} type="contacts" />
       </div>
     </div>
   );

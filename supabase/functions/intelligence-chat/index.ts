@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface ChatRequest {
   query: string
+  apiKey?: string
 }
 
 interface Contact {
@@ -65,8 +66,16 @@ serve(async (req) => {
       )
     }
 
+    // Fetch user's settings
+    const { data: userSettings } = await supabaseClient
+      .from('user_settings')
+      .select('ai')
+      .eq('user_id', user.id)
+      .single();
+    const userApiKey = userSettings?.ai?.apiKey;
+
     // Parse request body
-    const { query }: ChatRequest = await req.json()
+    const { query }: ChatRequest = await req.json();
 
     if (!query) {
       return new Response(
@@ -97,7 +106,13 @@ serve(async (req) => {
     const networkContext = analyzeNetworkContext(contacts || [], goals || [])
 
     // Generate AI response based on query and context
-    const aiResponse = await generateIntelligentResponse(query, networkContext)
+    let aiResponse;
+    try {
+      aiResponse = await generateOpenAIResponse(query, networkContext, userApiKey);
+    } catch (err) {
+      console.error('OpenAI error:', err);
+      aiResponse = await generateIntelligentResponse(query, networkContext);
+    }
 
     // Store the chat interaction in the database
     await supabaseClient
@@ -299,4 +314,45 @@ async function generateIntelligentResponse(query: string, context: any) {
       'Strengthen relationships'
     ]
   }
+}
+
+async function generateOpenAIResponse(query: string, context: any, apiKey?: string) {
+  let key = apiKey;
+  if (!key) {
+    try {
+      key = Deno.env.get('OPENAI_API_KEY');
+    } catch (e) {
+      key = undefined;
+    }
+  }
+  if (!key) throw new Error('No OpenAI API key provided');
+  const systemPrompt = `You are Rhiz, an AI relationship and network assistant. The user has the following context: ${JSON.stringify(context)}. Answer the user's query with actionable, concise, and friendly advice. If relevant, suggest next steps or actions.`;
+  const body = {
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: query }
+    ],
+    max_tokens: 400,
+    temperature: 0.7
+  };
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const error = await resp.text();
+    throw new Error(`OpenAI API error: ${error}`);
+  }
+  const data = await resp.json();
+  const response = data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+  return {
+    response,
+    confidence: 0.95,
+    suggestions: []
+  };
 }

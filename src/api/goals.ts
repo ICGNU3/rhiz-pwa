@@ -94,6 +94,23 @@ export const createGoal = async (goalData: Omit<Goal, 'id' | 'user_id' | 'create
       throw new Error('Please sign in to create goals');
     }
 
+    // Fetch user usage and settings
+    const { data: usage } = await supabase
+      .from('user_usage')
+      .select('goals_count')
+      .eq('user_id', user.id)
+      .single();
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('userType')
+      .eq('user_id', user.id)
+      .single();
+    const isFreeTier = !settings?.userType || settings.userType === 'free';
+    if (isFreeTier && usage?.goals_count >= 3) {
+      throw new Error('Free tier limit reached. Upgrade to add more than 3 goals.');
+    }
+    // TODO: Enforce on backend with RLS or trigger
+
     const enhancedGoal = {
       ...goalData,
       user_id: user.id,

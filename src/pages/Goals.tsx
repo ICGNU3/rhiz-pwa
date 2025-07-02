@@ -13,6 +13,7 @@ import GoalFilters from '../components/goals/GoalFilters';
 import GoalInsights from '../components/goals/GoalInsights';
 import { getGoals, createGoal, updateGoal, Goal } from '../api/goals';
 import { useRealTimeGoals } from '../hooks/useRealTimeGoals';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 const Goals: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +21,7 @@ const Goals: React.FC = () => {
   const [filterBy, setFilterBy] = useState('all');
   const [sortBy, setSortBy] = useState('priority');
   const queryClient = useQueryClient();
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // Enable real-time updates
   useRealTimeGoals();
@@ -36,6 +38,11 @@ const Goals: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setIsModalOpen(false);
       setEditingGoal(null);
+    },
+    onError: (error: any) => {
+      if (typeof error?.message === 'string' && error.message.includes('Free tier limit')) {
+        setShowUpgradePrompt(true);
+      }
     },
   });
 
@@ -261,6 +268,8 @@ const Goals: React.FC = () => {
             }}
           />
         </Modal>
+
+        <UpgradePrompt open={showUpgradePrompt} onClose={() => setShowUpgradePrompt(false)} type="goals" />
       </div>
     </div>
   );

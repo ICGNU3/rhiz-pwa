@@ -14,7 +14,12 @@ import {
   Moon,
   Sun,
   Download,
-  MessageSquare
+  MessageSquare,
+  DollarSign,
+  Sparkles,
+  Info,
+  HelpCircle,
+  Mail
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -63,6 +68,11 @@ const Layout: React.FC = () => {
     { name: 'Network', href: '/app/network', icon: Network, description: 'Visualize connections' },
     { name: 'Trust', href: '/app/trust', icon: Shield, description: 'Privacy & security' },
     { name: 'Settings', href: '/app/settings', icon: Settings, description: 'Account preferences' },
+    { name: 'Pricing', href: '/pricing', icon: DollarSign, description: 'Plans & pricing' },
+    { name: 'Features', href: '/features', icon: Sparkles, description: 'What you get' },
+    { name: 'About', href: '/about', icon: Info, description: 'Our story' },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle, description: 'Frequently asked questions' },
+    { name: 'Contact', href: '/contact', icon: Mail, description: 'Get in touch' },
   ];
 
   return (
