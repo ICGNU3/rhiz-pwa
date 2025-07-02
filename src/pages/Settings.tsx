@@ -223,6 +223,17 @@ const Settings: React.FC = () => {
     }
   ];
 
+  const [emailConnected, setEmailConnected] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [connectMsg, setConnectMsg] = useState('');
+
+  function handleDemoConnect(type: 'gmail' | 'outlook') {
+    setConnectMsg(`Connected to ${type === 'gmail' ? 'Gmail' : 'Outlook'}! Demo contacts updated.`);
+    setEmailConnected(true);
+    setCalendarConnected(true);
+    // TODO: In real integration, trigger backend sync and update contacts
+  }
+
   if (settingsLoading || statsLoading || !settings) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -919,6 +930,21 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Email/Calendar Sync Section */}
+              <div className="mb-8">
+                <h2 className="text-lg font-semibold mb-2">Connect Email/Calendar</h2>
+                <p className="text-sm text-gray-600 mb-2">Sync your Gmail or Outlook to auto-track last contact dates and calendar events. (Demo only)</p>
+                <div className="flex gap-4 mb-2">
+                  <button className={`btn btn-outline ${emailConnected ? 'btn-success' : ''}`} onClick={() => handleDemoConnect('gmail')} disabled={emailConnected}>
+                    {emailConnected ? 'Gmail Connected' : 'Connect Gmail'}
+                  </button>
+                  <button className={`btn btn-outline ${calendarConnected ? 'btn-success' : ''}`} onClick={() => handleDemoConnect('outlook')} disabled={calendarConnected}>
+                    {calendarConnected ? 'Outlook Connected' : 'Connect Outlook'}
+                  </button>
+                </div>
+                {connectMsg && <div className="text-green-700 text-sm mt-1">{connectMsg}</div>}
+              </div>
             </Card>
           </div>
         </div>

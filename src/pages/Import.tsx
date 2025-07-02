@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, CheckCircle, AlertTriangle, Download, Users, Mail, Building, MapPin, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
@@ -9,6 +9,9 @@ import Spinner from '../components/Spinner';
 import ContactForm from '../components/contacts/ContactForm';
 import ContactSearch from '../components/contacts/ContactSearch';
 import { createContact } from '../api/contacts';
+import { iosImportApi } from '../api/ios-import';
+import { contactsApi } from '../api/contacts';
+import type { Contact } from '../types';
 
 interface ImportResult {
   success: number;
@@ -34,6 +37,12 @@ interface ColumnMapping {
   [csvColumn: string]: string;
 }
 
+interface ImportPreview {
+  contacts: Contact[];
+  source: 'csv' | 'ios-shortcuts' | 'google';
+  fileName?: string;
+}
+
 const Import: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [importing, setImporting] = useState(false);
@@ -50,9 +59,13 @@ const Import: React.FC = () => {
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [file, setFile] = useState<File | null>(null);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [iosImportData, setIosImportData] = useState<string>('');
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const importMutation = useMutation({
     mutationFn: async (contacts: any[]) => {
@@ -134,103 +147,75 @@ const Import: React.FC = () => {
   const optionalFields = ['phone', 'location', 'tags', 'notes'];
   const allFields = [...requiredFields, ...optionalFields];
 
-  const handleFileUpload = (uploadedFile: File) => {
-    if (!uploadedFile) return;
-  
-    setFile(uploadedFile);
-  
-    // Read file as text first to detect delimiter
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const csvText = e.target?.result as string;
-      
-      // Debug: Show first few lines
-      console.log('First 3 lines of CSV:');
-      const firstLines = csvText.split('\n').slice(0, 3);
-      console.log(firstLines);
-      console.log('First line character codes:', firstLines[0].split('').map(c => c.charCodeAt(0)));
-  
-      // Check if it's actually a different format
-      if (firstLines[0].includes('"')) {
-        console.log('CSV contains quotes - might be quoted CSV');
-      }
-  
-      // Try Papa's auto-detection first
-      Papa.parse(csvText, {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const contacts = Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
-        // Remove delimiter specification to let Papa auto-detect
         transformHeader: (header: string) => header.trim(),
         complete: (results) => {
-          console.log('AUTO-DETECT Parse results:', results);
-          console.log('AUTO-DETECT Headers found:', Object.keys(results.data[0] || {}));
-          
-          // If auto-detect worked, continue
           if (Object.keys(results.data[0] || {}).length >= 3) {
-            console.log('Auto-detect worked!');
+            const cleanData = (results.data as ParsedContact[]).filter(row => {
+              const values = Object.values(row);
+              const hasRealData = values.some(value => 
+                value && 
+                typeof value === 'string' && 
+                value.length > 0 && 
+                !value.includes('linkedin.com') && 
+                !value.includes('psettings') &&
+                !value.includes('When exporting')
+              );
+              return hasRealData;
+            });
             
-            try {
-              // Filter out LinkedIn disclaimer rows and empty data
-              const cleanData = (results.data as ParsedContact[]).filter(row => {
-                const values = Object.values(row);
-                const hasRealData = values.some(value => 
-                  value && 
-                  typeof value === 'string' && 
-                  value.length > 0 && 
-                  !value.includes('linkedin.com') && 
-                  !value.includes('psettings') &&
-                  !value.includes('When exporting')
-                );
-                return hasRealData;
-              });
-              
-              if (cleanData.length === 0) {
-                console.error('No valid contact data found in CSV');
-                return;
-              }
-              
-              const headers = Object.keys(cleanData[0] || {});
-              console.log('Final headers:', headers);
-              setCsvHeaders(headers);
-              setParsedData(cleanData);
-              
-              // Ultra-flexible auto-mapping
-              const autoMapping: ColumnMapping = {};
-              headers.forEach(header => {
-                const lower = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-                
-                if (lower.includes('name') || lower.includes('first') || lower.includes('contact') || lower.includes('person')) {
-                  autoMapping[header] = 'name';
-                }
-                else if (lower.includes('email') || lower.includes('mail')) {
-                  autoMapping[header] = 'email';
-                }
-                else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('cell') || lower.includes('tel')) {
-                  autoMapping[header] = 'phone';
-                }
-                else if (lower.includes('company') || lower.includes('org') || lower.includes('employer') || lower.includes('work')) {
-                  autoMapping[header] = 'company';
-                }
-                else if (lower.includes('title') || lower.includes('position') || lower.includes('job') || lower.includes('role') || lower.includes('occupation')) {
-                  autoMapping[header] = 'title';
-                }
-                else if (lower.includes('location') || lower.includes('city') || lower.includes('address') || lower.includes('region')) {
-                  autoMapping[header] = 'location';
-                }
-                else if (lower.includes('tag') || lower.includes('skill') || lower.includes('category') || lower.includes('keyword') || lower.includes('interest')) {
-                  autoMapping[header] = 'tags';
-                }
-                else if (lower.includes('note') || lower.includes('comment') || lower.includes('description') || lower.includes('bio') || lower.includes('about')) {
-                  autoMapping[header] = 'notes';
-                }
-              });
-              
-              console.log('Auto-mapping result:', autoMapping);
-              setColumnMapping(autoMapping);
-              setCurrentStep(2);
-            } catch (error) {
-              console.error('Error parsing CSV:', error);
+            if (cleanData.length === 0) {
+              console.error('No valid contact data found in CSV');
+              return;
             }
+            
+            const headers = Object.keys(cleanData[0] || {});
+            setCsvHeaders(headers);
+            setParsedData(cleanData);
+            
+            // Ultra-flexible auto-mapping
+            const autoMapping: ColumnMapping = {};
+            headers.forEach(header => {
+              const lower = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+              
+              if (lower.includes('name') || lower.includes('first') || lower.includes('contact') || lower.includes('person')) {
+                autoMapping[header] = 'name';
+              }
+              else if (lower.includes('email') || lower.includes('mail')) {
+                autoMapping[header] = 'email';
+              }
+              else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('cell') || lower.includes('tel')) {
+                autoMapping[header] = 'phone';
+              }
+              else if (lower.includes('company') || lower.includes('org') || lower.includes('employer') || lower.includes('work')) {
+                autoMapping[header] = 'company';
+              }
+              else if (lower.includes('title') || lower.includes('position') || lower.includes('job') || lower.includes('role') || lower.includes('occupation')) {
+                autoMapping[header] = 'title';
+              }
+              else if (lower.includes('location') || lower.includes('city') || lower.includes('address') || lower.includes('region')) {
+                autoMapping[header] = 'location';
+              }
+              else if (lower.includes('tag') || lower.includes('skill') || lower.includes('category') || lower.includes('keyword') || lower.includes('interest')) {
+                autoMapping[header] = 'tags';
+              }
+              else if (lower.includes('note') || lower.includes('comment') || lower.includes('description') || lower.includes('bio') || lower.includes('about')) {
+                autoMapping[header] = 'notes';
+              }
+            });
+            
+            console.log('Auto-mapping result:', autoMapping);
+            setColumnMapping(autoMapping);
+            setCurrentStep(2);
           } else {
             console.log('Auto-detect failed - trying manual detection...');
             // Could add manual detection here if needed
@@ -239,10 +224,19 @@ const Import: React.FC = () => {
         error: (error) => {
           console.error('CSV parsing error:', error);
         }
+      }).data;
+      
+      setPreview({
+        contacts,
+        source: 'csv',
+        fileName: file.name
       });
-    };
-  
-    reader.readAsText(uploadedFile);
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('Error parsing CSV file. Please check the format.');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -253,7 +247,11 @@ const Import: React.FC = () => {
     const csvFile = files.find(file => file.type === 'text/csv' || file.name.endsWith('.csv'));
     
     if (csvFile) {
-      handleFileUpload(csvFile);
+      // Create a mock event for the file upload
+      const mockEvent = {
+        target: { files: [csvFile] }
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleFileUpload(mockEvent);
     }
   };
 
@@ -372,8 +370,137 @@ const Import: React.FC = () => {
     { name: 'LinkedIn', icon: Users, description: 'Import professional connections', status: 'coming-soon' },
     { name: 'Google Contacts', icon: Mail, description: 'Sync Gmail and Google contacts', status: 'available' },
     { name: 'Outlook', icon: Mail, description: 'Import Microsoft contacts', status: 'available' },
-    { name: 'Apple Contacts', icon: Users, description: 'Sync iPhone/Mac contacts', status: 'coming-soon' }
+    { name: 'Apple Contacts', icon: Users, description: 'Sync iPhone/Mac contacts via iOS Shortcuts', status: 'available', action: () => navigate('/app/ios-shortcuts') }
   ];
+
+  const handleIOSImport = async () => {
+    if (!iosImportData.trim()) {
+      alert('Please paste the contact data from your iOS Shortcut');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      // Parse the CSV data from shortcuts
+      const contacts = iosImportApi.parseShortcutsCSV(iosImportData);
+      
+      // Import contacts via the iOS API
+      const result = await iosImportApi.importContacts({
+        contacts,
+        source: 'ios-shortcuts'
+      });
+
+      if (result.success) {
+        setResult({
+          success: result.imported,
+          errors: result.errors,
+          data: [],
+          duplicates: result.duplicates,
+          enriched: 0
+        });
+        
+        // Auto-redirect to contacts after successful import
+        setTimeout(() => {
+          navigate('/contacts', { 
+            state: { 
+              message: `Successfully imported ${result.imported} contacts from iOS Shortcuts!`,
+              importedCount: result.imported
+            }
+          });
+        }, 2000);
+      } else {
+        alert(`Import failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('iOS import error:', error);
+      alert('Error importing contacts. Please try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleGoogleSync = async () => {
+    setImporting(true);
+    try {
+      const authUrl = await contactsApi.initiateGoogleOAuth();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      alert('Error connecting to Google. Please try again.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadIOSShortcut = () => {
+    // Create iOS Shortcut instructions and download
+    const shortcutInstructions = `# Rhiz Contacts Export Shortcut
+
+## Setup Instructions:
+1. Open the Shortcuts app on your iPhone
+2. Tap the + button to create a new shortcut
+3. Add these actions in order:
+
+### Action 1: Get All Contacts
+- Search for "Get All Contacts"
+- Tap on it to add
+
+### Action 2: Get Details of Contacts
+- Search for "Get Details of Contacts"
+- Tap on it to add
+- Select these properties:
+  - First Name
+  - Last Name
+  - Organization
+  - Job Title
+  - Phone Numbers
+  - Email Addresses
+  - Notes
+
+### Action 3: Create CSV
+- Search for "Text"
+- Add a text action with this template:
+\`\`\`
+First Name,Last Name,Organization,Job Title,Phone,Email,Notes
+{{Repeat with each in Contacts}}
+{{First Name}},{{Last Name}},{{Organization}},{{Job Title}},{{Phone Numbers}},{{Email Addresses}},{{Notes}}
+{{End Repeat}}
+\`\`\`
+
+### Action 4: Copy to Clipboard
+- Search for "Copy to Clipboard"
+- Add it after the Text action
+
+### Action 5: Show Result
+- Search for "Show Result"
+- Set the text to: "Contacts exported! Copy the data and paste it into Rhiz."
+
+## Usage:
+1. Run the shortcut
+2. Copy the CSV data from clipboard
+3. Go to Rhiz Import page
+4. Paste the data in the iOS Shortcuts section
+5. Click "Import Contacts"
+
+## Alternative: Direct Web Import
+For automatic import, add this action after "Copy to Clipboard":
+- Search for "Get Contents of URL"
+- Set URL to: ${window.location.origin}/api/ios-import
+- Set Method to: POST
+- Add header: Content-Type: application/json
+- Set Request Body to: {"contacts": {{Shortcut Input}}, "source": "ios-shortcuts"}
+`;
+
+    const blob = new Blob([shortcutInstructions], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rhiz-ios-shortcut-setup.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-900 p-6">
@@ -478,9 +605,10 @@ const Import: React.FC = () => {
                   or click to browse files
                 </p>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".csv"
-                  onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                  onChange={handleFileUpload}
                   className="hidden"
                   id="file-upload"
                 />
@@ -548,6 +676,7 @@ const Import: React.FC = () => {
                         variant={integration.status === 'available' ? 'primary' : 'outline'}
                         size="sm"
                         disabled={integration.status === 'coming-soon'}
+                        onClick={integration.action}
                       >
                         {integration.status === 'available' ? 'Connect' : 'Soon'}
                       </Button>

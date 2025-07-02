@@ -20,6 +20,7 @@ export interface Contact {
   tags: string[];
   last_contact?: string;
   trust_score?: number;
+  healthScore?: number;
   engagement_trend?: 'up' | 'down' | 'stable';
   relationship_strength?: 'strong' | 'medium' | 'weak';
   mutual_connections?: number;

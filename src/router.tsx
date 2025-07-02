@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const Goals = lazy(() => import('./pages/Goals'));
 const Import = lazy(() => import('./pages/Import'));
+const IOSShortcutsGuide = lazy(() => import('./pages/IOSShortcutsGuide'));
 const Intelligence = lazy(() => import('./pages/Intelligence'));
 const Network = lazy(() => import('./pages/Network'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -31,6 +32,7 @@ const AppRouter = () => {
           <Route path="contacts" element={<Contacts />} />
           <Route path="goals" element={<Goals />} />
           <Route path="import" element={<Import />} />
+          <Route path="ios-shortcuts" element={<IOSShortcutsGuide />} />
           <Route path="intelligence" element={<Intelligence />} />
           <Route path="network" element={<Network />} />
           <Route path="settings" element={<Settings />} />

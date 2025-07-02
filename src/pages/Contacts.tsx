@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Users, Filter, Search, Grid, List, Trash, Tag, Mail } from 'lucide-react';
 import Card from '../components/Card';
@@ -16,6 +16,7 @@ import { useRealTimeContacts } from '../hooks/useRealTimeContacts';
 import { filterContacts, sortContacts, applyContactFilters } from '../utils/helpers';
 import { useNotifications, createNotification } from '../context/NotificationContext';
 import { useBehaviorTracking } from '../hooks/useBehaviorTracking';
+import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
 
 // Filter state type
 interface ContactFilters {
@@ -56,6 +57,13 @@ const Contacts: React.FC = () => {
     getSearchStats,
     getFeatureStats,
   } = useBehaviorTracking();
+
+  const { suggestions, smartDefaults } = useContextualSuggestions('contacts');
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importedContacts, setImportedContacts] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     recordTiming(); // Track app open/check-in
@@ -162,6 +170,49 @@ const Contacts: React.FC = () => {
       alert('No emails found for selected contacts');
     }
   };
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      // Simple CSV parse (assume LinkedIn format: First Name, Last Name, Email Address, Company, Position)
+      const lines = text.split('\n').filter(Boolean);
+      const headers = lines[0].split(',');
+      const contacts = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj: any = {};
+        headers.forEach((h, i) => { obj[h.trim()] = values[i]?.trim(); });
+        return obj;
+      });
+      setImportedContacts(contacts);
+    };
+    reader.readAsText(file);
+  }
+
+  function handleImportConfirm() {
+    // Demo: Add imported contacts to localContacts
+    setLocalContacts(prev => [
+      ...prev,
+      ...importedContacts.map(c => ({
+        id: Math.random().toString(36).slice(2),
+        user_id: 'demo',
+        name: `${c['First Name'] || ''} ${c['Last Name'] || ''}`.trim(),
+        email: c['Email Address'] || '',
+        company: c['Company'] || '',
+        title: c['Position'] || '',
+        tags: ['linkedin'],
+        trust_score: 50,
+        relationship_strength: 'medium',
+        engagement_trend: 'stable',
+        created_at: new Date().toISOString(),
+      }) as Contact)
+    ]);
+    setImportModalOpen(false);
+    setImportedContacts([]);
+    addNotification(createNotification.success('Contacts imported', 'LinkedIn contacts have been added.', 'contact'));
+  }
 
   if (isLoading) {
     return (
@@ -300,6 +351,17 @@ const Contacts: React.FC = () => {
           </div>
         )}
 
+        {/* Contextual Suggestions Panel */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border border-blue-200 shadow flex flex-col gap-2 relative">
+            <button className="absolute top-2 right-2 text-xs text-blue-500" onClick={() => setShowSuggestions(false)} aria-label="Dismiss suggestions">&times;</button>
+            <div className="font-semibold text-blue-900 mb-1">Suggestions for you</div>
+            {suggestions.map((s, i) => (
+              <div key={i} className="text-sm text-blue-800">{s}</div>
+            ))}
+          </div>
+        )}
+
         {/* Contacts Display */}
         <Card className="p-0 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
           {/* Bulk Action Bar */}
@@ -412,6 +474,40 @@ const Contacts: React.FC = () => {
             <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs flex items-center gap-1">Recently Added <button onClick={() => setFilters(f => ({ ...f, recentlyAdded: false }))}>&times;</button></span>
           )}
         </div>
+
+        {/* Import LinkedIn CSV Button */}
+        <button className="btn btn-outline mb-4" onClick={() => setImportModalOpen(true)}>
+          Import LinkedIn CSV
+        </button>
+        {/* Import Modal */}
+        {importModalOpen && (
+          <Modal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)} title="Import LinkedIn Connections">
+            <div className="p-4 max-w-lg">
+              <h2 className="text-lg font-semibold mb-2">Import LinkedIn Connections</h2>
+              <ol className="text-sm mb-3 list-decimal list-inside">
+                <li>Go to LinkedIn &gt; Settings &gt; Data Privacy &gt; Get a copy of your data.</li>
+                <li>Choose "Connections" and export as CSV.</li>
+                <li>Upload the CSV file below.</li>
+              </ol>
+              <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileChange} className="mb-3" />
+              {importedContacts.length > 0 && (
+                <div className="mb-3">
+                  <div className="font-medium mb-1">Preview ({importedContacts.length} contacts):</div>
+                  <ul className="max-h-32 overflow-y-auto text-xs bg-gray-50 border rounded p-2">
+                    {importedContacts.slice(0, 5).map((c, i) => (
+                      <li key={i}>{c['First Name']} {c['Last Name']} - {c['Email Address']} - {c['Company']} - {c['Position']}</li>
+                    ))}
+                    {importedContacts.length > 5 && <li>...and {importedContacts.length - 5} more</li>}
+                  </ul>
+                </div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button className="btn btn-outline" onClick={() => setImportModalOpen(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleImportConfirm} disabled={importedContacts.length === 0}>Import</button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

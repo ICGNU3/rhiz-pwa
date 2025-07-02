@@ -3,12 +3,20 @@ import { Mail, Phone, MapPin, MessageSquare, Calendar, Star, ExternalLink, MoreV
 import Button from '../ui/Button';
 import { getTrustScoreColor, getRelationshipColor, getRelationshipTypeColor, getInitials } from '../../utils/helpers';
 import type { Contact } from '../../types';
+import { getRelationshipHealthScore, getRelationshipHealthLabel } from '../../utils/relationshipHealth';
 
 interface ContactCardProps { 
   contact: Contact; 
 }
 
 export default function ContactCard({ contact }: ContactCardProps) {
+  const healthScore = getRelationshipHealthScore(contact);
+  const healthLabel = getRelationshipHealthLabel(healthScore);
+  let healthColor = '';
+  if (healthLabel === 'Healthy') healthColor = 'bg-green-100 text-green-700';
+  else if (healthLabel === 'At Risk') healthColor = 'bg-yellow-100 text-yellow-800';
+  else healthColor = 'bg-red-100 text-red-700';
+
   return (
     <div className="p-6 relative overflow-hidden group">
       {/* Background Pattern */}
@@ -121,6 +129,13 @@ export default function ContactCard({ contact }: ContactCardProps) {
             Last contact: {new Date(contact.last_contact).toLocaleDateString()}
           </p>
         )}
+
+        {/* Health Badge */}
+        <div className="flex items-center space-x-2 mb-4">
+          <span className={`px-2 py-1 rounded-full text-xs font-light border ${healthColor}`}>
+            {healthLabel}
+          </span>
+        </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">

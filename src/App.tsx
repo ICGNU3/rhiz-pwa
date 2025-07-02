@@ -6,6 +6,8 @@ import AppRouter from './router';
 import LoadingScreen from './components/LoadingScreen';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OnboardingTour from './components/OnboardingTour';
+import { demoContacts } from './data/demoData';
+import { getAtRiskContacts } from './utils/relationshipHealth';
 
 function App() {
   const { theme } = useTheme();
@@ -19,6 +21,24 @@ function App() {
         'Your intelligent relationship engine is ready to help you build stronger connections.',
         'system'
       ));
+
+      // Smart Reminders: At-risk contacts
+      const atRisk = getAtRiskContacts(demoContacts, 30);
+      atRisk.forEach(contact => {
+        addNotification({
+          type: 'warning',
+          title: `Reach out to ${contact.name}?`,
+          message: `It's been over 30 days since you last connected with ${contact.name}.`,
+          category: 'contact',
+          action: {
+            label: 'Send Message',
+            onClick: () => {
+              window.open(`mailto:${contact.email || ''}?subject=Checking in&body=Hi ${contact.name},`);
+            }
+          },
+          metadata: { contactId: contact.id }
+        });
+      });
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -31,9 +51,9 @@ function App() {
           <Suspense fallback={<LoadingScreen />}>
             <AppRouter />
           </Suspense>
+          <PWAInstallPrompt />
+          <OnboardingTour />
         </BrowserRouter>
-        <PWAInstallPrompt />
-        <OnboardingTour />
       </div>
     </div>
   );

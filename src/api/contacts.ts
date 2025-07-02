@@ -1,4 +1,3 @@
-
 import { supabase } from './client';
 import type { Contact } from '../types';
 import { demoContacts } from '../data/demoData';
@@ -173,3 +172,322 @@ export const subscribeToContacts = (callback: (payload: any) => void) => {
 };
 
 export { type Contact };
+
+export interface GoogleContact {
+  name: string
+  email: string
+  phone: string
+  company: string
+  title: string
+  source: 'google'
+  google_id: string
+}
+
+// Google OAuth Configuration
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+const GOOGLE_REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/settings`
+
+export const contactsApi = {
+  // Real Google OAuth Methods
+  async initiateGoogleOAuth(): Promise<string> {
+    const scopes = [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/contacts.readonly'
+    ].join(' ')
+    
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
+    authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID!)
+    authUrl.searchParams.set('redirect_uri', GOOGLE_REDIRECT_URI)
+    authUrl.searchParams.set('response_type', 'code')
+    authUrl.searchParams.set('scope', scopes)
+    authUrl.searchParams.set('access_type', 'offline')
+    authUrl.searchParams.set('prompt', 'consent')
+    
+    return authUrl.toString()
+  },
+
+  async handleGoogleOAuthCallback(code: string): Promise<{ success: boolean; user?: any; error?: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY!
+        },
+        body: JSON.stringify({
+          action: 'exchange_code',
+          code
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'OAuth exchange failed')
+      }
+
+      const result = await response.json()
+      return { success: true, user: result.user }
+    } catch (error) {
+      console.error('Google OAuth error:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  },
+
+  async syncGoogleContacts(): Promise<{ success: boolean; contacts?: GoogleContact[]; error?: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY!
+        },
+        body: JSON.stringify({
+          action: 'get_contacts'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to sync contacts')
+      }
+
+      const result = await response.json()
+      return { success: true, contacts: result.contacts }
+    } catch (error) {
+      console.error('Google contacts sync error:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  },
+
+  async getGoogleIntegrationStatus(): Promise<{ connected: boolean; user?: any }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return { connected: false }
+
+      const { data, error } = await supabase
+        .from('user_integrations')
+        .select('*')
+        .eq('provider', 'google')
+        .single()
+
+      if (error || !data) return { connected: false }
+      
+      return { connected: true, user: data.user_info }
+    } catch (error) {
+      console.error('Error checking Google integration:', error)
+      return { connected: false }
+    }
+  },
+
+  async disconnectGoogle(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+
+      const { error } = await supabase
+        .from('user_integrations')
+        .delete()
+        .eq('provider', 'google')
+
+      if (error) throw error
+      return { success: true }
+    } catch (error) {
+      console.error('Error disconnecting Google:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  },
+
+  // Existing contact methods
+  async getContacts(): Promise<Contact[]> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      // Return demo data for unauthenticated users
+      return [
+        {
+          id: '1',
+          user_id: 'demo',
+          name: 'John Smith',
+          email: 'john@example.com',
+          phone: '+1-555-0123',
+          company: 'Tech Corp',
+          title: 'Senior Developer',
+          tags: ['work', 'tech'],
+          healthScore: 85,
+          last_contact: '2024-01-15',
+          created_at: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          user_id: 'demo',
+          name: 'Sarah Johnson',
+          email: 'sarah@example.com',
+          phone: '+1-555-0456',
+          company: 'Design Studio',
+          title: 'UX Designer',
+          tags: ['work', 'design'],
+          healthScore: 92,
+          last_contact: '2024-01-20',
+          created_at: '2024-01-05T00:00:00Z'
+        }
+      ]
+    }
+
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching contacts:', error)
+      return []
+    }
+
+    return data || []
+  },
+
+  async createContact(contact: Omit<Contact, 'id' | 'created_at' | 'updated_at'>): Promise<Contact | null> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      console.warn('No session, contact creation skipped')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('contacts')
+      .insert([contact])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating contact:', error)
+      return null
+    }
+
+    return data
+  },
+
+  async updateContact(id: string, updates: Partial<Contact>): Promise<Contact | null> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      console.warn('No session, contact update skipped')
+      return null
+    }
+
+    const { data, error } = await supabase
+      .from('contacts')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating contact:', error)
+      return null
+    }
+
+    return data
+  },
+
+  async deleteContact(id: string): Promise<boolean> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      console.warn('No session, contact deletion skipped')
+      return false
+    }
+
+    const { error } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting contact:', error)
+      return false
+    }
+
+    return true
+  },
+
+  async bulkDeleteContacts(ids: string[]): Promise<boolean> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      console.warn('No session, bulk deletion skipped')
+      return false
+    }
+
+    const { error } = await supabase
+      .from('contacts')
+      .delete()
+      .in('id', ids)
+
+    if (error) {
+      console.error('Error bulk deleting contacts:', error)
+      return false
+    }
+
+    return true
+  },
+
+  async searchContacts(query: string): Promise<Contact[]> {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      // Return filtered demo data for unauthenticated users
+      const demoContacts = [
+        {
+          id: '1',
+          user_id: 'demo',
+          name: 'John Smith',
+          email: 'john@example.com',
+          phone: '+1-555-0123',
+          company: 'Tech Corp',
+          title: 'Senior Developer',
+          tags: ['work', 'tech'],
+          healthScore: 85,
+          last_contact: '2024-01-15',
+          created_at: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          user_id: 'demo',
+          name: 'Sarah Johnson',
+          email: 'sarah@example.com',
+          phone: '+1-555-0456',
+          company: 'Design Studio',
+          title: 'UX Designer',
+          tags: ['work', 'design'],
+          healthScore: 92,
+          last_contact: '2024-01-20',
+          created_at: '2024-01-05T00:00:00Z'
+        }
+      ]
+
+      return demoContacts.filter(contact =>
+        contact.name.toLowerCase().includes(query.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(query.toLowerCase()) ||
+        contact.company?.toLowerCase().includes(query.toLowerCase())
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .or(`name.ilike.%${query}%,email.ilike.%${query}%,company.ilike.%${query}%`)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error searching contacts:', error)
+      return []
+    }
+
+    return data || []
+  }
+}
