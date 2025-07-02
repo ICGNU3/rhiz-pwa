@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../ui/Button';
 import { useContextualSuggestions } from '../../hooks/useContextualSuggestions';
+import Modal from '../Modal';
 
 interface ContactFormProps { 
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -31,6 +32,13 @@ export default function ContactForm({ onSubmit, loading = false }: ContactFormPr
     tags: [],
     notes: '',
   }));
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const templates = [
+    { label: 'Investor', fields: { title: 'Investor', tags: ['investor', 'vc'], company: 'VC Firm' } },
+    { label: 'Client', fields: { title: 'Client', tags: ['client'], company: 'Client Company' } },
+    { label: 'Donor', fields: { title: 'Donor', tags: ['donor'], company: 'Nonprofit' } },
+    { label: 'Advisor', fields: { title: 'Advisor', tags: ['advisor', 'mentor'], company: 'Advisory Group' } },
+  ];
 
   useEffect(() => {
     if ((!form.tags || form.tags.length === 0) && smartDefaults.tag) {
@@ -38,6 +46,11 @@ export default function ContactForm({ onSubmit, loading = false }: ContactFormPr
     }
     // eslint-disable-next-line
   }, []);
+
+  function handleTemplateSelect(fields: Partial<FormState>) {
+    setForm(f => ({ ...f, ...fields }));
+    setTemplateModalOpen(false);
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -163,6 +176,29 @@ export default function ContactForm({ onSubmit, loading = false }: ContactFormPr
           Add Contact
         </Button>
       </div>
+
+      {/* Templates Button */}
+      <button type="button" className="btn btn-outline mb-2" onClick={() => setTemplateModalOpen(true)}>
+        Templates
+      </button>
+
+      {/* Template Modal */}
+      {templateModalOpen && (
+        <Modal isOpen={templateModalOpen} onClose={() => setTemplateModalOpen(false)} title="Contact Templates">
+          <div className="p-4 max-w-md">
+            <h2 className="text-lg font-semibold mb-2">Choose a Template</h2>
+            <ul className="space-y-2">
+              {templates.map((tpl, i) => (
+                <li key={i}>
+                  <button className="btn btn-outline w-full text-left" onClick={() => handleTemplateSelect(tpl.fields)}>
+                    {tpl.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
+      )}
     </form>
   );
 }
