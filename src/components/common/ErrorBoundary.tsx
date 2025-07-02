@@ -1,12 +1,15 @@
 import React, { Component, ReactNode } from 'react';
+import { errorTracker } from '../../utils/errorTracking';
 
 interface Props {
   children: ReactNode;
   fallback: ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
+  error?: Error;
 }
 
 /**
@@ -19,18 +22,23 @@ class ErrorBoundary extends Component<Props, State> {
     hasError: false,
   };
 
-  public static getDerivedStateFromError(_: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // We can log the error to an error reporting service here.
-    // For now, we'll just log it to the console.
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // Log the error to our error tracking service
+    errorTracker.captureReactError(error, errorInfo);
+    
+    // Call custom error handler if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
   }
 
-  public render() {    if (this.state.hasError) {
+  public render() {
+    if (this.state.hasError) {
       return this.props.fallback;
     }
 

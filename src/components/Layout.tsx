@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { deferredPrompt } from '../main';
 import usePrefetchRoute from '../hooks/usePrefetchRoute';
 import LoadingScreen from './LoadingScreen';
+import SearchBar from './SearchBar';
 
 // Lazy load the sidebar content to improve initial load time
 const SidebarContent = lazy(() => import('./SidebarContent'));
@@ -119,7 +120,13 @@ const Layout: React.FC = () => {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex-1" />
+            
+            {/* Search Bar - hidden on mobile to save space */}
+            <div className="hidden md:flex flex-1 justify-center px-4">
+              <SearchBar />
+            </div>
+            
+            <div className="flex-1 md:hidden" />
           </div>
         </header>
 
