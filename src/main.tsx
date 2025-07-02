@@ -1,18 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css'; // Assuming you have a main CSS file for Tailwind
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import { LoadingProvider } from './hooks/useLoadingContext';
 import App from './App';
 import './index.css';
@@ -35,19 +25,6 @@ let deferredPrompt: any;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-});
-
-// Create a client with optimized settings
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      retry: 1, // Reduce retries to improve performance
-      refetchOnWindowFocus: false, // Disable refetch on window focus
-      refetchOnReconnect: true, // Enable refetch on reconnect
-    },
-  },
 });
 
 // Preload critical resources
@@ -76,6 +53,8 @@ const removePlaceholder = () => {
     }, 300);
   }
 };
+
+const queryClient = new QueryClient();
 
 // Create root with error boundary
 const container = document.getElementById('root');

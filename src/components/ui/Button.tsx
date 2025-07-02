@@ -1,13 +1,10 @@
 import React from 'react';
-import { DivideIcon as LucideIcon } from 'lucide-react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
-  icon?: LucideIcon;
+  icon?: React.ElementType;
   loading?: boolean;
-  children: React.ReactNode;
-  as?: 'button' | 'span';
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -18,7 +15,6 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
-  as = 'button',
   ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-light rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -37,10 +33,8 @@ const Button: React.FC<ButtonProps> = ({
     lg: 'px-6 py-3 text-base'
   };
 
-  const Component = as;
-
   return (
-    <Component
+    <button
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
@@ -51,7 +45,7 @@ const Button: React.FC<ButtonProps> = ({
         <Icon className="w-4 h-4 mr-2" />
       ) : null}
       {children}
-    </Component>
+    </button>
   );
 };
 

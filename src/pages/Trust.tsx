@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, Check, X, AlertTriangle, Lock, Eye, EyeOff, Key, Download, Trash2, Settings, TrendingUp, Users, Clock, Filter, BarChart3, Zap } from 'lucide-react';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import TrustChart from '../components/trust/TrustChart';

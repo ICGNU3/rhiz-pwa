@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../api/client';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Card from '../components/Card';
 import { Mail, CheckCircle, ArrowLeft, AlertTriangle } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Network, Users, Zap, Search, Filter, Maximize2, Settings, Eye, EyeOff, ZoomIn, ZoomOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Button from '../Button';
+import Button from '../ui/Button';
 import { measureTime } from '../../utils/performance';
 
 interface NetworkNode {

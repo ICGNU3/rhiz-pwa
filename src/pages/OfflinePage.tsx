@@ -1,6 +1,6 @@
 import React from 'react';
 import { WifiOff, RefreshCw, Network, Zap } from 'lucide-react';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Card from '../components/Card';
 
 const OfflinePage: React.FC = () => {

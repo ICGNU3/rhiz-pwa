@@ -1,6 +1,6 @@
 import React from 'react';
 import { Mail, Phone, MapPin, MessageSquare, Calendar, Star, ExternalLink, MoreVertical } from 'lucide-react';
-import Button from '../Button';
+import Button from '../ui/Button';
 import { getTrustScoreColor, getRelationshipColor, getRelationshipTypeColor, getInitials } from '../../utils/helpers';
 import type { Contact } from '../../types';
 

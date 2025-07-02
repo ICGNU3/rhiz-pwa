@@ -1,6 +1,6 @@
 import React from 'react';
 import { Zap, AlertTriangle, Target, Clock, TrendingUp, Users } from 'lucide-react';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 interface RelationshipAlert { 
   type: 'opportunity' | 'risk' | 'milestone';

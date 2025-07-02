@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Filter, Grid, List } from 'lucide-react';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 interface ContactSearchProps {
   searchTerm: string;

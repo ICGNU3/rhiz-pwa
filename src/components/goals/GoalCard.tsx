@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target, Calendar, Users, CheckCircle, Zap, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
-import Button from '../Button';
+import Button from '../ui/Button';
 import { getPriorityColor, getProgressColor, calculateDaysUntilDue, isOverdue } from '../../utils/helpers';
 import type { Goal } from '../../types';
 

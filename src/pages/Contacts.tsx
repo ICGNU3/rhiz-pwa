@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Users, Filter, Search, Grid, List } from 'lucide-react';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';

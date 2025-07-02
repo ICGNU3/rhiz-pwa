@@ -1,42 +1,5 @@
-import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';const navItems = [
-  { path: '/', label: 'Dashboard' },
-  { path: '/contacts', label: 'Contacts' },
-  { path: '/network', label: 'Network' },
-  { path: '/trust', label: 'Trust' },
-  { path: '/settings', label: 'Settings' },
-];
-
-const Layout: React.FC = () => {
-  return (
-    <div className="flex h-screen bg-gray-900 text-gray-200">
-      <aside className="w-64 flex-shrink-0 bg-gray-800 border-r border-gray-700">
-        <div className="p-4 font-bold text-lg text-white">Rhiz</div>
-        <nav className="mt-4">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end
-              className={({ isActive }) =>
-                `block px-4 py-2 text-sm rounded-md mx-2 my-1 hover:bg-gray-700 ${
-                  isActive ? 'bg-violet-600 text-white' : 'text-gray-300'
-                }`
-              }
-            >              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <main className="flex-1 overflow-y-auto p-8">
-        <Outlet />
-      </main>
-    </div>
-  );
-};
-
-export default Layout;import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -62,7 +25,7 @@ import LoadingScreen from './LoadingScreen';
 // Lazy load the sidebar content to improve initial load time
 const SidebarContent = lazy(() => import('./SidebarContent'));
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -162,7 +125,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Page content */}
         <main className="flex-1 overflow-auto p-6 font-light pb-20 sm:pb-6">
-          {children}
+          <Outlet />
         </main>
 
         {/* Mobile Bottom Navigation - visible on mobile, hidden on sm and up */}

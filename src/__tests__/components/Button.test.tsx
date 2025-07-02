@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '../utils/test-utils';
 import userEvent from '@testing-library/user-event';
-import Button from '../../components/Button';
+import Button from '../../components/ui/Button';
 import { Mail } from 'lucide-react';
 
 describe('Button Component', () => {

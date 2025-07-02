@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle, X, Loader2 } from 'lucide-react';
 import { supabase } from '../api/client';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Card from '../components/Card';
 
 const ApplyPage: React.FC = () => {

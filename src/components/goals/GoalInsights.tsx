@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap, Target, Users, TrendingUp, Lightbulb, ArrowRight } from 'lucide-react';
 import Card from '../Card';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 export default function GoalInsights() {
   const insights = [

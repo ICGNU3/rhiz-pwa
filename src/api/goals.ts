@@ -15,10 +15,9 @@ export const getGoals = async (): Promise<Goal[]> => {
           user_id: 'demo',
           title: 'Connect with 5 AI/ML founders',
           description: 'Build relationships with founders in the AI space to explore potential partnerships and learn from their experiences.',
-          target_value: 5,
-          current_value: 2,
           target_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
           category: 'Networking',
+          priority: 'high' as const,
           completed: false,
           created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
           updated_at: new Date().toISOString(),
@@ -30,10 +29,9 @@ export const getGoals = async (): Promise<Goal[]> => {
           user_id: 'demo',
           title: 'Secure pre-seed funding',
           description: 'Raise $500k pre-seed round by connecting with angel investors and early-stage VCs.',
-          target_value: 500000,
-          current_value: 150000,
           target_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days from now
           category: 'Fundraising',
+          priority: 'high' as const,
           completed: false,
           created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 days ago
           updated_at: new Date().toISOString(),
@@ -43,7 +41,7 @@ export const getGoals = async (): Promise<Goal[]> => {
       ];
     }
 
-    let data = [];
+    let data: any[] = [];
     let error = null;
 
     try {
@@ -53,7 +51,7 @@ export const getGoals = async (): Promise<Goal[]> => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
-      data = result.data;
+      data = result.data || [];
       error = result.error;
     } catch (dbError) {
       console.warn('Database error when fetching goals:', dbError);
@@ -74,7 +72,7 @@ export const getGoals = async (): Promise<Goal[]> => {
     // Enhance with mock progress data for any missing fields
     const enhancedGoals = data.map(goal => ({
       ...goal,
-      progress: goal.progress ?? Math.floor((goal.current_value / goal.target_value) * 100) || Math.floor(Math.random() * 100),
+      progress: goal.progress ?? Math.floor(Math.random() * 100),
       related_contacts: goal.related_contacts ?? Math.floor(Math.random() * 5) + 1,
       category: goal.category || ['Networking', 'Fundraising', 'Hiring', 'Partnerships', 'Growth'][Math.floor(Math.random() * 5)]
     }));

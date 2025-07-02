@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, CheckCircle, AlertTriangle, Download, Users, Mail, Building, MapPin, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
 import Papa from 'papaparse';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ContactForm from '../components/contacts/ContactForm';
 import ContactSearch from '../components/contacts/ContactSearch';

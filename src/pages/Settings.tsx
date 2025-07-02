@@ -30,7 +30,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import { getUserSettings, updateUserSettings, getUserStats, UserSettings } from '../api/settings';

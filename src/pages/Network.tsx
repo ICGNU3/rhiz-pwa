@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Network as NetworkIcon, Users, Building, MapPin, GitBranch, Zap, TrendingUp, Search, Filter, BarChart3, Maximize2, Settings } from 'lucide-react';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import ContactSearch from '../components/contacts/ContactSearch';

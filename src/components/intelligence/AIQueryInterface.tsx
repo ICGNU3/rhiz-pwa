@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Search, Send, Sparkles, Lightbulb, Zap } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import Button from '../Button';
+import Button from '../ui/Button';
 import { sendChatQuery, getChatHistory } from '../../api/intelligence';
 
 interface AIQueryInterfaceProps { 

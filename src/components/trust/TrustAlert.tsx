@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Clock, User, TrendingDown, CheckCircle, X, MessageSquare, Eye } from 'lucide-react';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 interface TrustAlert {
   id: string;

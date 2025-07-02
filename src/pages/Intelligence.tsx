@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { TrendingUp, Users, Target, Lightbulb, MessageSquare, Brain, Zap, BarChart3, AlertTriangle, CheckCircle } from 'lucide-react';
 import Card from '../components/Card';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import AIQueryInterface from '../components/intelligence/AIQueryInterface';
