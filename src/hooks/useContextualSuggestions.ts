@@ -33,6 +33,11 @@ export function useContextualSuggestions(context: string) {
       if (userType === 'nonprofit') return { tag: 'donor' };
       if (userType === 'consultant') return { tag: 'client' };
     }
+    if (context === 'goals') {
+      if (userType === 'founder') return { category: 'fundraising', priority: 'high' };
+      if (userType === 'nonprofit') return { category: 'campaign', priority: 'medium' };
+      if (userType === 'consultant') return { category: 'client success', priority: 'high' };
+    }
     return {};
   }, [userType, context]);
 

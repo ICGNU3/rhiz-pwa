@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import Button from '../ui/Button';
+import { useContextualSuggestions } from '../../hooks/useContextualSuggestions';
 
 interface Goal {
   id: string;
@@ -19,6 +20,39 @@ interface GoalFormProps {
 }
 
 export default function GoalForm({ onSubmit, editingGoal, loading = false, onCancel }: GoalFormProps) {
+  const { suggestions, smartDefaults } = useContextualSuggestions('goals');
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
+  // Define FormState type
+  interface FormState {
+    title: string;
+    description: string;
+    target_date: string;
+    completed: boolean;
+    priority: 'low' | 'medium' | 'high';
+    category?: string;
+  }
+
+  const [form, setForm] = useState<FormState>(() => ({
+    title: '',
+    description: '',
+    target_date: '',
+    completed: false,
+    priority: 'medium',
+    category: '',
+  }));
+
+  // On mount, if category/priority are empty and smartDefaults exist, pre-fill
+  useEffect(() => {
+    if (!form.category && smartDefaults.category) {
+      setForm(f => ({ ...f, category: smartDefaults.category }));
+    }
+    if (!form.priority && smartDefaults.priority) {
+      setForm(f => ({ ...f, priority: smartDefaults.priority }));
+    }
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid grid-cols-1 gap-6">
@@ -114,6 +148,17 @@ export default function GoalForm({ onSubmit, editingGoal, loading = false, onCan
           {editingGoal ? 'Update Goal' : 'Create Goal'}
         </Button>
       </div>
+
+      {/* Contextual Suggestions Panel */}
+      {showSuggestions && suggestions && suggestions.length > 0 && (
+        <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border border-blue-200 shadow flex flex-col gap-2 relative">
+          <button className="absolute top-2 right-2 text-xs text-blue-500" onClick={() => setShowSuggestions(false)} aria-label="Dismiss suggestions">&times;</button>
+          <div className="font-semibold text-blue-900 mb-1">Suggestions for you</div>
+          {suggestions.map((s, i) => (
+            <div key={i} className="text-sm text-blue-800">{s}</div>
+          ))}
+        </div>
+      )}
     </form>
   );
 }
