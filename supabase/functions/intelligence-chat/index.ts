@@ -32,6 +32,26 @@ interface Goal {
   category: string
 }
 
+type NetworkContext = {
+  totalContacts: number;
+  recentContacts: number;
+  dormantContacts: number;
+  highTrustContacts: number;
+  lowTrustContacts: number;
+  activeGoals: number;
+  overdueGoals: number;
+  highPriorityGoals: number;
+  topCompanies: Array<{ company: string; count: number }>;
+  dormantContactNames: string[];
+  recentContactNames: string[];
+  goalCategories: string[];
+};
+
+type CompanyInfo = {
+  company: string;
+  count: number;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -203,7 +223,7 @@ function analyzeNetworkContext(contacts: Contact[], goals: Goal[]) {
   }
 }
 
-async function generateIntelligentResponse(query: string, context: any) {
+async function generateIntelligentResponse(query: string, context: NetworkContext) {
   const queryLower = query.toLowerCase()
   
   // Analyze query intent and generate contextual responses
@@ -224,7 +244,7 @@ async function generateIntelligentResponse(query: string, context: any) {
   }
 
   if (queryLower.includes('fundrais') || queryLower.includes('investor') || queryLower.includes('funding')) {
-    const investorContacts = context.topCompanies.filter((c: any) => 
+    const investorContacts = context.topCompanies.filter((c: CompanyInfo) => 
       c.company.toLowerCase().includes('capital') || 
       c.company.toLowerCase().includes('ventures') ||
       c.company.toLowerCase().includes('fund')
@@ -316,12 +336,12 @@ async function generateIntelligentResponse(query: string, context: any) {
   }
 }
 
-async function generateOpenAIResponse(query: string, context: any, apiKey?: string) {
+async function generateOpenAIResponse(query: string, context: NetworkContext, apiKey?: string) {
   let key = apiKey;
   if (!key) {
     try {
       key = Deno.env.get('OPENAI_API_KEY');
-    } catch (e) {
+    } catch {
       key = undefined;
     }
   }

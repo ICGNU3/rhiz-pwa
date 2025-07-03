@@ -21,6 +21,7 @@ import {
   Users,
   Moon,
   Sun,
+  Video,
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/ui/Button';
@@ -29,6 +30,8 @@ import ErrorBorder from '../components/ErrorBorder';
 import { getUserSettings, updateUserSettings, getUserStats, UserSettings } from '../api/settings';
 import { supabase } from '../api/client';
 import Modal from '../components/Modal';
+import { calendlyAPI, zoomAPI, googleMeetAPI } from '../api/integrations';
+import AdaptiveSettings from '../components/settings/AdaptiveSettings';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
@@ -121,15 +124,15 @@ const Settings: React.FC = () => {
 
   const handleSettingChange = (section: keyof UserSettings, key: string, value: unknown) => {
     if (!settings) return;
-    
+    const sectionValue = typeof settings[section] === 'object' && settings[section] !== null ? settings[section] : {};
     const newSettings = {
       ...settings,
-      [section]: { ...settings[section], [key]: value }
+      [section]: { ...sectionValue, [key]: value }
     };
     setSettings(newSettings);
     try {
       updateSettingsMutation.mutate(newSettings);
-    } catch (err) {
+    } catch {
       console.error('Failed to update settings');
     }
   };
@@ -151,7 +154,7 @@ const Settings: React.FC = () => {
     setSettings(newSettings);
     try {
       updateSettingsMutation.mutate(newSettings);
-    } catch (err) {
+    } catch {
       console.error('Failed to update settings');
     }
     
@@ -176,6 +179,7 @@ const Settings: React.FC = () => {
     { id: 'integrations', label: 'Integrations', icon: Zap, description: 'Connected services' },
     { id: 'privacy', label: 'Privacy', icon: Shield, description: 'Data & security' },
     { id: 'ai', label: 'AI Assistant', icon: MessageSquare, description: 'AI preferences' },
+    { id: 'adaptive', label: 'Adaptive Interface', icon: SettingsIcon, description: 'Behavior learning & personalization' },
     { id: 'advanced', label: 'Advanced', icon: SettingsIcon, description: 'System settings' }
   ];
 
@@ -220,14 +224,21 @@ const Settings: React.FC = () => {
       name: 'Calendly', 
       icon: Calendar, 
       description: 'Sync meeting data and contacts',
-      status: 'coming-soon'
+      status: 'available'
     },
     { 
       key: 'zoom', 
       name: 'Zoom', 
       icon: Users, 
       description: 'Import meeting participants and interactions',
-      status: 'coming-soon'
+      status: 'available'
+    },
+    { 
+      key: 'google-meet', 
+      name: 'Google Meet', 
+      icon: Video,
+      description: 'Track meeting participants and engagement',
+      status: 'available'
     },
     { 
       key: 'telegram', 
@@ -248,6 +259,124 @@ const Settings: React.FC = () => {
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramPolling, setTelegramPolling] = useState(false);
 
+  // New integration states
+  const [showCalendlyModal, setShowCalendlyModal] = useState(false);
+  const [calendlyApiKey, setCalendlyApiKey] = useState('');
+  const [calendlyConnecting, setCalendlyConnecting] = useState(false);
+  const [calendlyError, setCalendlyError] = useState<string | null>(null);
+
+  const [showZoomModal, setShowZoomModal] = useState(false);
+  const [zoomConnecting, setZoomConnecting] = useState(false);
+  const [zoomError, setZoomError] = useState<string | null>(null);
+
+  const [showGoogleMeetModal, setShowGoogleMeetModal] = useState(false);
+  const [googleMeetConnecting, setGoogleMeetConnecting] = useState(false);
+  const [googleMeetError, setGoogleMeetError] = useState<string | null>(null);
+
+  // Handle URL parameters for OAuth callbacks
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (code && state) {
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      if (state === 'zoom') {
+        handleZoomCallback(code);
+      } else if (state === 'google-meet') {
+        handleGoogleMeetCallback(code);
+      }
+    }
+  }, []);
+
+  const handleCalendlyConnect = async () => {
+    if (!calendlyApiKey.trim()) {
+      setCalendlyError('Please enter your Calendly API key');
+      return;
+    }
+
+    setCalendlyConnecting(true);
+    setCalendlyError(null);
+
+    try {
+      await calendlyAPI.connect(calendlyApiKey);
+      handleSettingChange('integrations', 'calendly', true);
+      setShowCalendlyModal(false);
+      setCalendlyApiKey('');
+      setConnectMsg('Calendly connected successfully!');
+    } catch (error) {
+      setCalendlyError(error instanceof Error ? error.message : 'Failed to connect Calendly');
+    } finally {
+      setCalendlyConnecting(false);
+    }
+  };
+
+  const handleZoomConnect = () => {
+    setZoomConnecting(true);
+    setZoomError(null);
+    
+    zoomAPI.getAuthUrl()
+      .then(url => {
+        // Add state parameter to identify the callback
+        const authUrl = `${url}&state=zoom`;
+        window.location.href = authUrl;
+      })
+      .catch(error => {
+        setZoomError(error instanceof Error ? error.message : 'Failed to start Zoom authorization');
+        setZoomConnecting(false);
+      });
+  };
+
+  const handleZoomCallback = async (code: string) => {
+    setZoomConnecting(true);
+    setZoomError(null);
+
+    try {
+      await zoomAPI.exchangeCode(code);
+      handleSettingChange('integrations', 'zoom', true);
+      setShowZoomModal(false);
+      setConnectMsg('Zoom connected successfully!');
+    } catch (error) {
+      setZoomError(error instanceof Error ? error.message : 'Failed to connect Zoom');
+    } finally {
+      setZoomConnecting(false);
+    }
+  };
+
+  const handleGoogleMeetConnect = () => {
+    setGoogleMeetConnecting(true);
+    setGoogleMeetError(null);
+    
+    googleMeetAPI.getAuthUrl()
+      .then(url => {
+        // Add state parameter to identify the callback
+        const authUrl = `${url}&state=google-meet`;
+        window.location.href = authUrl;
+      })
+      .catch(error => {
+        setGoogleMeetError(error instanceof Error ? error.message : 'Failed to start Google Meet authorization');
+        setGoogleMeetConnecting(false);
+      });
+  };
+
+  const handleGoogleMeetCallback = async (code: string) => {
+    setGoogleMeetConnecting(true);
+    setGoogleMeetError(null);
+
+    try {
+      await googleMeetAPI.exchangeCode(code);
+      handleSettingChange('integrations', 'google-meet', true);
+      setShowGoogleMeetModal(false);
+      setConnectMsg('Google Meet connected successfully!');
+    } catch (error) {
+      setGoogleMeetError(error instanceof Error ? error.message : 'Failed to connect Google Meet');
+    } finally {
+      setGoogleMeetConnecting(false);
+    }
+  };
+
   useEffect(() => {
     if (showTelegramModal) {
       setTelegramCode(null);
@@ -259,7 +388,7 @@ const Settings: React.FC = () => {
           setTelegramCode(data.code);
           setTelegramCodeLoading(false);
         })
-        .catch(err => {
+        .catch(() => {
           setTelegramCodeError('Failed to generate code. Please try again.');
           setTelegramCodeLoading(false);
         });
@@ -656,6 +785,12 @@ const Settings: React.FC = () => {
                             onClick={() => {
                               if (provider.key === 'telegram' && !isConnected) {
                                 setShowTelegramModal(true);
+                              } else if (provider.key === 'calendly' && !isConnected) {
+                                setShowCalendlyModal(true);
+                              } else if (provider.key === 'zoom' && !isConnected) {
+                                setShowZoomModal(true);
+                              } else if (provider.key === 'google-meet' && !isConnected) {
+                                setShowGoogleMeetModal(true);
                               } else {
                                 handleSettingChange('integrations', provider.key, !isConnected);
                               }
@@ -839,51 +974,6 @@ const Settings: React.FC = () => {
                     </h2>
                   </div>
 
-                  {/* API Key Management (Free tier only) */}
-                  {/* TODO: Only show for free tier users */}
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                      Bring Your Own OpenAI/Anthropic API Key
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      Free tier users must provide their own API key for AI features. Paid users use Rhiz credits.
-                    </p>
-                    <form
-                      onSubmit={e => {
-                        e.preventDefault();
-                        if (!settings) return;
-                        const formData = new FormData(e.currentTarget);
-                        const apiKey = formData.get('apiKey') as string;
-                        handleSettingChange('ai', 'apiKey', apiKey);
-                      }}
-                      className="flex items-center gap-4"
-                    >
-                      <input
-                        name="apiKey"
-                        type="password"
-                        placeholder="sk-..."
-                        defaultValue={settings.ai.apiKey || ''}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <Button type="submit" variant="primary" size="sm">
-                        Save
-                      </Button>
-                      {settings.ai.apiKey && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSettingChange('ai', 'apiKey', '')}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </form>
-                    {settings.ai.apiKey && (
-                      <div className="text-green-700 text-xs mt-2">API key saved and in use.</div>
-                    )}
-                  </div>
-
                   <div className="space-y-6">
                     {Object.entries(settings.ai).map(([key, value]) => {
                       if (key === 'apiKey') return null;
@@ -965,6 +1055,11 @@ const Settings: React.FC = () => {
                     })}
                   </div>
                 </div>
+              )}
+
+              {/* Adaptive Interface Tab */}
+              {activeTab === 'adaptive' && (
+                <AdaptiveSettings />
               )}
 
               {/* Advanced Tab */}
@@ -1099,6 +1194,162 @@ const Settings: React.FC = () => {
           >
             Close
           </Button>
+        </div>
+      </Modal>
+
+      {/* Calendly Integration Modal */}
+      <Modal isOpen={showCalendlyModal} onClose={() => setShowCalendlyModal(false)} title="Connect Calendly">
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Connect Your Calendly Account</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Sync your Calendly meetings to automatically track interactions and update contact relationships.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Calendly API Key
+              </label>
+              <input
+                type="password"
+                value={calendlyApiKey}
+                onChange={(e) => setCalendlyApiKey(e.target.value)}
+                placeholder="Enter your Calendly API key"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Get your API key from{' '}
+                <a 
+                  href="https://calendly.com/app/admin/integrations/api" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-500"
+                >
+                  Calendly API settings
+                </a>
+              </p>
+            </div>
+            
+            {calendlyError && (
+              <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                {calendlyError}
+              </div>
+            )}
+            
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleCalendlyConnect}
+                loading={calendlyConnecting}
+                disabled={!calendlyApiKey.trim()}
+                className="flex-1"
+              >
+                Connect Calendly
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCalendlyModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Zoom Integration Modal */}
+      <Modal isOpen={showZoomModal} onClose={() => setShowZoomModal(false)} title="Connect Zoom">
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Connect Your Zoom Account</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Sync your Zoom meetings to automatically track participants and meeting interactions.
+            </p>
+          </div>
+          
+          {zoomError && (
+            <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-4">
+              {zoomError}
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What we access:</h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Your scheduled meetings</li>
+                <li>• Meeting participants</li>
+                <li>• Meeting duration and attendance</li>
+                <li>• No meeting content or recordings</li>
+              </ul>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleZoomConnect}
+                loading={zoomConnecting}
+                className="flex-1"
+              >
+                Connect Zoom
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowZoomModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Google Meet Integration Modal */}
+      <Modal isOpen={showGoogleMeetModal} onClose={() => setShowGoogleMeetModal(false)} title="Connect Google Meet">
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Connect Your Google Account</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Sync your Google Calendar events with video conferencing to track meeting participants and interactions.
+            </p>
+          </div>
+          
+          {googleMeetError && (
+            <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-4">
+              {googleMeetError}
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">What we access:</h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Your calendar events with video conferencing</li>
+                <li>• Meeting attendees and their responses</li>
+                <li>• Meeting times and durations</li>
+                <li>• No meeting content or recordings</li>
+              </ul>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button
+                onClick={handleGoogleMeetConnect}
+                loading={googleMeetConnecting}
+                className="flex-1"
+              >
+                Connect Google Meet
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowGoogleMeetModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </div>
       </Modal>
     </div>

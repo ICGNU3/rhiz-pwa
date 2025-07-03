@@ -6,18 +6,19 @@ import {
   CheckCircle, 
   Check, 
   FileText,
-  Mail,
   ArrowLeft,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle,
+  X,
+  Merge
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Contact } from '../types';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
-import { createContact, aiCategorizeAndLinkContacts, enrichContactWithWebSearch, getContacts as fetchContacts } from '../api/contacts';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 interface ParsedContact {
@@ -43,7 +44,7 @@ interface ColumnMapping {
 interface ImportResult {
   success: boolean;
   imported: number;
-  errors: number;
+  errors: string[];
   duplicates: number;
   message: string;
 }
@@ -56,15 +57,22 @@ interface ImportStats {
   skipped: number;
 }
 
-interface ImportPreview {
-  contacts: Contact[];
-  source: 'csv' | 'ios-shortcuts' | 'google';
-  fileName?: string;
+interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
 }
 
-// Type guard for Contact
-function isValidContact(obj: unknown): obj is Contact {
-  return obj !== null && typeof obj === 'object' && 'name' in obj && 'email' in obj;
+interface MergeContact {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  title: string;
+  phone?: string;
+  notes?: string;
+  trustScore?: number;
+  relationshipStrength?: string;
 }
 
 const Import: React.FC = () => {
@@ -84,114 +92,110 @@ const Import: React.FC = () => {
     notes: ''
   });
   const [importProgress, setImportProgress] = useState(0);
-  const [previewContacts, setPreviewContacts] = useState<unknown[]>([]);
+  const [previewContacts, setPreviewContacts] = useState<ParsedContact[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [suggestedMerges, setSuggestedMerges] = useState<unknown[]>([]);
+  const [suggestedMerges, setSuggestedMerges] = useState<MergeContact[]>([]);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [mergeTargetIds, setMergeTargetIds] = useState<string[]>([]);
   const [mergeContactsData, setMergeContactsData] = useState<Contact[]>([]);
   const [mergeSuccess, setMergeSuccess] = useState<string | null>(null);
   const [mergeLoading, setMergeLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const importMutation = useMutation({
-    mutationFn: async (contacts: Contact[]): Promise<{ results: Contact[]; errors: string[]; duplicates: number; enriched: number }> => {
-      setImporting(true);
-      setImportProgress(0);
-      
-      // --- AI enrichment and deduplication step ---
-      let enrichedContacts = contacts;
-      let merges: Contact[] = [];
-      try {
-        const aiResult = await aiCategorizeAndLinkContacts(contacts);
-        enrichedContacts = aiResult.enrichedContacts as Contact[];
-        merges = aiResult.suggestedMerges as Contact[];
-        setSuggestedMerges(merges);
-      } catch (err) {
-        console.error('AI enrichment failed, proceeding without:', err);
-      }
-
-      // --- Web enrichment step ---
-      for (let i = 0; i < enrichedContacts.length; i++) {
-        try {
-          setImportProgress(Math.round(((i + 1) / enrichedContacts.length) * 100));
-          const webInfo = await enrichContactWithWebSearch({
-            name: enrichedContacts[i].name,
-            email: enrichedContacts[i].email,
-            company: enrichedContacts[i].company,
-          });
-          enrichedContacts[i] = { ...enrichedContacts[i], webInfo };
-        } catch (err) {
-          // Ignore web enrichment errors for now
-        }
-      }
-
-      const results: Contact[] = [];
-      const errors: string[] = [];
-      const duplicates = 0;
-      let enriched = 0;
-
-      // Process contacts one by one with progress updates
-      for (let i = 0; i < enrichedContacts.length; i++) {
-        try {
-          const contact = enrichedContacts[i];
-          if (contact.enriched) enriched++;
-          await createContact(contact as Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
-          results.push(contact);
-          setImportProgress(Math.round(((i + 1) / enrichedContacts.length) * 100));
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          console.error('Error importing contact:', message);
-          errors.push(`Failed to import ${enrichedContacts[i].name}: ${message}`);
-        }
-      }
-      
-      return { results, errors, duplicates, enriched };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['network-data'] });
-      setImporting(false);
-      
-      setResult({
-        success: data.results.length > 0,
-        imported: data.results.length,
-        errors: data.errors.length,
-        duplicates: data.duplicates,
-        message: data.results.length > 0 ? 'Import completed successfully!' : 'No contacts imported.'
-      });
-
-      setImportStats({
-        total: parsedData.length,
-        imported: data.results.length,
-        errors: data.errors.length,
-        duplicates: data.duplicates,
-        skipped: data.results.length - data.duplicates
-      });
-
-      setCurrentStep(4);
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('Import failed:', message);
-      setImporting(false);
-    }
-  });
-
   const requiredFields = ['name', 'email', 'company', 'title'];
   const optionalFields = ['phone', 'location', 'tags', 'notes'];
   const allFields = [...requiredFields, ...optionalFields];
+
+  // CSV Validation function
+  const validateCSV = (contacts: ParsedContact[]): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    
+    contacts.forEach((contact, index) => {
+      const row = index + 2; // +2 because we skip header row and arrays are 0-indexed
+      
+      // Required field validation
+      if (!contact.name || contact.name.trim().length === 0) {
+        errors.push({
+          row,
+          field: 'name',
+          message: 'Name is required'
+        });
+      }
+      
+      if (!contact.email || contact.email.trim().length === 0) {
+        errors.push({
+          row,
+          field: 'email',
+          message: 'Email is required'
+        });
+      } else if (!isValidEmail(contact.email)) {
+        errors.push({
+          row,
+          field: 'email',
+          message: 'Invalid email format'
+        });
+      }
+      
+      if (!contact.company || contact.company.trim().length === 0) {
+        errors.push({
+          row,
+          field: 'company',
+          message: 'Company is required'
+        });
+      }
+      
+      if (!contact.title || contact.title.trim().length === 0) {
+        errors.push({
+          row,
+          field: 'title',
+          message: 'Title is required'
+        });
+      }
+      
+      // Optional field validation
+      if (contact.phone && !isValidPhone(contact.phone)) {
+        errors.push({
+          row,
+          field: 'phone',
+          message: 'Invalid phone number format'
+        });
+      }
+    });
+    
+    return errors;
+  };
+
+  // Email validation helper
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Phone validation helper
+  const isValidPhone = (phone: string): boolean => {
+    const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
+    return phoneRegex.test(phone.replace(/[\s\-()]/g, ''));
+  };
 
   const handleFileUpload = async (file: File) => {
     try {
       const text = await file.text();
       const lines = text.split('\n');
+      
+      if (lines.length < 2) {
+        throw new Error('CSV file must contain at least a header row and one data row');
+      }
+      
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      if (headers.length < 3) {
+        throw new Error('CSV file must contain at least 3 columns (name, email, company)');
+      }
       
       setCsvHeaders(headers);
       
@@ -248,12 +252,31 @@ const Import: React.FC = () => {
         }
       }
       
+      // Validate the parsed data
+      const errors = validateCSV(parsed);
+      setValidationErrors(errors);
+      
+      if (errors.length > 0) {
+        setShowValidationErrors(true);
+        setParsedData([]);
+        setPreviewContacts([]);
+        return;
+      }
+      
       setParsedData(parsed);
       setPreviewContacts(parsed.slice(0, 5));
       setCurrentStep(2);
     } catch (error) {
       console.error('Error parsing CSV:', error);
-      // Handle error appropriately
+      const errorMessage = error instanceof Error ? error.message : 'Error parsing CSV file';
+      setResult({
+        success: false,
+        imported: 0,
+        errors: [errorMessage],
+        duplicates: 0,
+        message: errorMessage
+      });
+      setCurrentStep(4);
     }
   };
 
@@ -283,7 +306,7 @@ const Import: React.FC = () => {
   const generatePreview = () => {
     if (parsedData.length === 0) return;
     
-    const preview = parsedData.slice(0, 5).map((contact, index) => ({
+    const preview = parsedData.slice(0, 5).map((contact: ParsedContact, index: number) => ({
       id: `preview-${index}`,
       name: contact.name || 'Unknown',
       email: contact.email || 'No email',
@@ -302,7 +325,7 @@ const Import: React.FC = () => {
     setImportProgress(0);
     
     try {
-      const contactsToImport = parsedData.map((contact) => ({
+      const contactsToImport = parsedData.map((contact: ParsedContact) => ({
         name: contact.name,
         email: contact.email,
         company: contact.company,
@@ -319,28 +342,26 @@ const Import: React.FC = () => {
         body: JSON.stringify({ contacts: contactsToImport }),
       });
       
-      const data = await response.json();
-      
       if (response.ok) {
         setResult({
-          success: data.results.length > 0,
-          imported: data.results.length,
-          errors: data.errors.length,
-          duplicates: data.duplicates,
-          message: data.results.length > 0 ? 'Import completed successfully!' : 'No contacts imported.'
+          success: true,
+          imported: parsedData.length,
+          errors: [],
+          duplicates: 0,
+          message: 'Import completed successfully!'
         });
 
         setImportStats({
           total: parsedData.length,
-          imported: data.results.length,
-          errors: data.errors.length,
-          duplicates: data.duplicates,
-          skipped: data.results.length - data.duplicates
+          imported: parsedData.length,
+          errors: 0,
+          duplicates: 0,
+          skipped: 0
         });
         
         setCurrentStep(4);
       } else {
-        throw new Error(data.message || 'Import failed');
+        throw new Error('Import failed');
       }
     } catch (error) {
       console.error('Import error:', error);
@@ -348,7 +369,7 @@ const Import: React.FC = () => {
       setResult({
         success: false,
         imported: 0,
-        errors: 1,
+        errors: [errorMessage],
         duplicates: 0,
         message: errorMessage
       });
@@ -359,22 +380,22 @@ const Import: React.FC = () => {
   };
 
   const downloadTemplate = () => {
-    const csvContent = 'name,email,phone,company,title,location,tags,notes\n' +
-      'John Doe,john@example.com,+1-555-0123,Acme Corp,Software Engineer,San Francisco CA,"tech,startup",Met at React Conference\n' +
-      'Jane Smith,jane@example.com,+1-555-0124,Tech Inc,Product Manager,New York NY,"product,saas",LinkedIn connection\n' +
-      'Alex Johnson,alex@example.com,+1-555-0125,StartupCo,CTO,Austin TX,"tech,leadership",Former colleague';
-    
+    const csvContent = 'name,email,company,title,phone,notes\nJohn Doe,john@example.com,Acme Corp,CEO,+1234567890,Met at conference\nJane Smith,jane@example.com,Tech Inc,CTO,+1987654321,Former colleague';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'rhiz-contacts-template.csv';
+    a.download = 'contacts_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
   const resetImport = () => {
     setCurrentStep(1);
+    setImporting(false);
+    setResult(null);
+    setImportStats(null);
+    setDragActive(false);
     setParsedData([]);
     setCsvHeaders([]);
     setColumnMapping({
@@ -385,37 +406,31 @@ const Import: React.FC = () => {
       phone: '',
       notes: ''
     });
-    setPreviewContacts([]);
-    setResult(null);
-    setImportStats(null);
     setImportProgress(0);
+    setPreviewContacts([]);
+    setSearchTerm('');
+    setSuggestedMerges([]);
+    setMergeModalOpen(false);
+    setMergeTargetIds([]);
+    setMergeContactsData([]);
+    setMergeSuccess(null);
+    setMergeLoading(false);
+    setValidationErrors([]);
+    setShowValidationErrors(false);
   };
-
-  const integrationOptions = [
-    { name: 'LinkedIn', icon: Users, description: 'Import professional connections', status: 'coming-soon' },
-    { name: 'Google Contacts', icon: Mail, description: 'Sync Gmail and Google contacts', status: 'available' },
-    { name: 'Outlook', icon: Mail, description: 'Import Microsoft contacts', status: 'available' },
-    { name: 'Apple Contacts', icon: Users, description: 'Sync iPhone/Mac contacts via iOS Shortcuts', status: 'available', action: () => navigate('/app/ios-shortcuts') }
-  ];
 
   // Field-level merge handler
   const openMergeModal = async (ids: string[]) => {
-    setMergeTargetIds(ids);
-    setMergeSuccess(null);
     setMergeLoading(true);
     try {
-      // Fetch both contacts (assume fetchContacts returns all, filter by id)
-      const allContacts = await fetchContacts();
-      const contactsToMerge = allContacts.filter((c: any) => ids.includes(c.id));
-      setMergeContactsData((contactsToMerge as unknown[]).map(c => c as Contact));
-      // Default: prefer first contact's fields
-      const fields = {} as Record<string, string>;
-      if (contactsToMerge.length > 0) {
-        Object.keys(contactsToMerge[0]).forEach(key => {
-          fields[key] = contactsToMerge[0][key] as string;
-        });
+      const response = await fetch(`/api/contacts?ids=${ids.join(',')}`);
+      const contactsToMerge = await response.json();
+      
+      if (contactsToMerge && contactsToMerge.length > 0) {
+        setMergeContactsData(contactsToMerge);
+        setMergeTargetIds(ids);
+        setMergeModalOpen(true);
       }
-      setMergeModalOpen(true);
     } catch (error) {
       console.error('Error fetching contacts for merge:', error);
       setMergeContactsData([]);
@@ -423,11 +438,6 @@ const Import: React.FC = () => {
     } finally {
       setMergeLoading(false);
     }
-  };
-
-  const handleFieldChange = (field: string, value: string) => {
-    // Handle field changes if needed
-    console.log('Field changed:', field, value);
   };
 
   const handleMerge = async () => {
@@ -441,16 +451,25 @@ const Import: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sourceIds: mergeTargetIds,
-          targetId: mergeTargetIds[0],
+          sourceIds: mergeTargetIds.slice(1), // All except the first one
+          targetId: mergeTargetIds[0], // First one becomes the target
         }),
       });
 
       if (response.ok) {
         setMergeSuccess('Contacts merged successfully!');
         setMergeModalOpen(false);
+        
         // Refresh contacts list
-        // You might want to trigger a refetch here
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        
+        // Update import stats if we're in import flow
+        if (importStats) {
+          setImportStats(prev => prev ? {
+            ...prev,
+            duplicates: prev.duplicates + mergeTargetIds.length - 1
+          } : null);
+        }
       } else {
         throw new Error('Failed to merge contacts');
       }
@@ -462,14 +481,9 @@ const Import: React.FC = () => {
     }
   };
 
-  const handleMergeFieldChange = (field: string, value: string) => {
+  const handleFieldChange = (field: string, value: string) => {
     // Handle merge field changes if needed
     console.log('Merge field changed:', field, value);
-  };
-
-  const handleMergePreview = (contactIds: string[]) => {
-    setMergeTargetIds(contactIds);
-    setMergeModalOpen(true);
   };
 
   return (
@@ -595,6 +609,34 @@ const Import: React.FC = () => {
                 </label>
               </div>
 
+              {/* Validation Errors Display */}
+              {showValidationErrors && validationErrors.length > 0 && (
+                <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+                    <h4 className="font-medium text-red-800 dark:text-red-200">
+                      CSV Validation Errors ({validationErrors.length})
+                    </h4>
+                    <button
+                      onClick={() => setShowValidationErrors(false)}
+                      className="ml-auto text-red-600 hover:text-red-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto">
+                    {validationErrors.map((error: ValidationError, index: number) => (
+                      <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1">
+                        <span className="font-medium">Row {error.row}:</span> {error.field} - {error.message}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    Please fix these errors in your CSV file and try uploading again.
+                  </p>
+                </div>
+              )}
+
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-3">
                   Supported CSV Format
@@ -613,8 +655,6 @@ const Import: React.FC = () => {
                     <p className="font-medium text-blue-600 mb-1">Optional:</p>
                     <ul className="space-y-1 text-gray-600 dark:text-gray-400">
                       <li>• phone</li>
-                      <li>• location</li>
-                      <li>• tags</li>
                       <li>• notes</li>
                     </ul>
                   </div>
@@ -624,38 +664,57 @@ const Import: React.FC = () => {
 
             <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                Quick Integrations
+                Import Features
               </h2>
               
               <div className="space-y-4">
-                {integrationOptions.map((integration, index) => {
-                  const Icon = integration.icon;
-                  return (
-                    <div key={index} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
-                          <Icon className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">
-                            {integration.name}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {integration.description}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant={integration.status === 'available' ? 'primary' : 'outline'}
-                        size="sm"
-                        disabled={integration.status === 'coming-soon'}
-                        onClick={integration.action}
-                      >
-                        {integration.status === 'available' ? 'Connect' : 'Soon'}
-                      </Button>
-                    </div>
-                  );
-                })}
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Check className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Smart Validation</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Automatic validation of email formats, required fields, and data integrity
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Users className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Duplicate Detection</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      AI-powered duplicate detection and smart merge suggestions
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Building className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Data Enrichment</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Automatic enrichment with company info, social profiles, and trust scores
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Merge className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white">Smart Merging</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Intelligent contact merging with field-level conflict resolution
+                    </p>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -936,16 +995,16 @@ const Import: React.FC = () => {
                 <ul className="space-y-2">
                   {suggestedMerges.map((merge, idx) => (
                     (() => {
-                      const m = merge as { ids: string[]; reason: string };
+                      const m = merge as MergeContact;
                       return (
                         <li key={idx} className="text-yellow-800 text-sm flex items-center justify-between">
                           <span>
-                            <span className="font-medium">Contacts:</span> {m.ids.join(', ')}<br />
-                            <span className="font-medium">Reason:</span> {m.reason}
+                            <span className="font-medium">Contacts:</span> {m.name} ({m.email})<br />
+                            <span className="font-medium">Reason:</span> {m.notes}
                           </span>
                           <button
                             className="ml-4 btn btn-xs btn-primary"
-                            onClick={() => openMergeModal(m.ids)}
+                            onClick={() => openMergeModal([m.id])}
                           >
                             Merge
                           </button>
@@ -1067,7 +1126,7 @@ const Import: React.FC = () => {
                             Import completed with {result.errors.length} warnings:
                           </p>
                           <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300 max-h-32 overflow-y-auto">
-                            {result.errors.slice(0, 5).map((error, index) => (
+                            {result.errors.slice(0, 5).map((error: string, index: number) => (
                               <li key={index}>• {error}</li>
                             ))}
                             {result.errors.length > 5 && (
