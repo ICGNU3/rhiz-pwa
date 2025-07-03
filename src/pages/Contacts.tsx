@@ -16,6 +16,8 @@ import { sortContacts, applyContactFilters } from '../utils/helpers';
 import { useNotifications, createNotification } from '../context/NotificationContext';
 import { useAdaptiveBehavior } from '../hooks/useAdaptiveBehavior';
 import UpgradePrompt from '../components/UpgradePrompt';
+import ContactMemoryPanel from '../components/contacts/ContactMemoryPanel';
+import ContactCard from '../components/contacts/ContactCard';
 
 // Filter state type
 interface ContactFilters {
@@ -64,6 +66,7 @@ const Contacts: React.FC = () => {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [suggestedMerge, setSuggestedMerge] = useState<null | { reason: string; ids: string[] }>(null);
   const [webInfoNotice, setWebInfoNotice] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     recordAdaptiveBehavior('timing', { time: new Date().toLocaleTimeString() }); // Track app open/check-in
@@ -416,6 +419,7 @@ const Contacts: React.FC = () => {
             contacts={sortedContacts}
             selectedContactIds={selectedContactIds}
             onSelectionChange={setSelectedContactIds}
+            onContactClick={setSelectedContact}
           />
         </Card>
 
@@ -558,6 +562,21 @@ const Contacts: React.FC = () => {
         )}
 
         <UpgradePrompt open={showUpgradePrompt} onClose={() => setShowUpgradePrompt(false)} type="contacts" />
+
+        {/* Contact Detail Modal */}
+        <Modal
+          isOpen={!!selectedContact}
+          onClose={() => setSelectedContact(null)}
+          title={selectedContact ? selectedContact.name : ''}
+          size="xl"
+        >
+          {selectedContact && (
+            <div className="space-y-6">
+              <ContactCard contact={selectedContact} />
+              <ContactMemoryPanel contactId={selectedContact.id} />
+            </div>
+          )}
+        </Modal>
       </div>
     </div>
   );

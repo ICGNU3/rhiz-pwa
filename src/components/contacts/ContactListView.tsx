@@ -6,9 +6,10 @@ interface ContactListViewProps {
   contacts: Contact[];
   selectedContactIds?: string[];
   onSelectionChange?: (selected: string[]) => void;
+  onContactClick?: (contact: Contact) => void;
 }
 
-function ContactListView({ contacts, selectedContactIds = [], onSelectionChange }: ContactListViewProps) {
+function ContactListView({ contacts, selectedContactIds = [], onSelectionChange, onContactClick }: ContactListViewProps) {
   const allSelected = contacts.length > 0 && contacts.every(c => selectedContactIds.includes(c.id));
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,12 +50,21 @@ function ContactListView({ contacts, selectedContactIds = [], onSelectionChange 
           else healthColor = 'bg-red-100 text-red-700';
           const checked = selectedContactIds.includes(contact.id);
           return (
-            <div key={contact.id} className="flex items-center py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+            <div
+              key={contact.id}
+              className="flex items-center py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
+              onClick={e => {
+                // Prevent click from checkbox triggering row click
+                if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                onContactClick?.(contact);
+              }}
+            >
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={e => handleSelect(contact.id, e.target.checked)}
                 className="form-checkbox h-4 w-4 text-indigo-600 mr-3"
+                onClick={e => e.stopPropagation()}
               />
               <img src={contact.avatar} alt={contact.name} className="w-8 h-8 rounded-full object-cover mr-3" />
               <div className="flex-1 min-w-0">
