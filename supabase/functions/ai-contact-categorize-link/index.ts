@@ -17,7 +17,13 @@ serve(async (req) => {
 
     // Placeholder: Call to AI API for categorization and linking
     // In production, replace this with a real call to OpenAI, Claude, etc.
-    const enrichedContacts = contacts.map((contact: any, i: number) => ({
+    type Contact = {
+      id: string;
+      name?: string;
+      email?: string;
+      [key: string]: unknown;
+    };
+    const enrichedContacts = contacts.map((contact: Contact, i: number) => ({
       ...contact,
       ai_category: ['Founder', 'Investor', 'Mentor', 'Client', 'Partner'][i % 5],
       ai_industry: ['Tech', 'Finance', 'Healthcare', 'Education', 'Startup'][i % 5],
@@ -43,7 +49,11 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), { status: 500 });
+  } catch (error: unknown) {
+    let message = 'Unknown error';
+    if (typeof error === 'object' && error && 'message' in error && typeof (error as { message: string }).message === 'string') {
+      message = (error as { message: string }).message;
+    }
+    return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }); 

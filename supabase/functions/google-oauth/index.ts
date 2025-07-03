@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+type GoogleContact = {
+  names?: Array<{ displayName?: string }>;
+  emailAddresses?: Array<{ value?: string }>;
+  phoneNumbers?: Array<{ value?: string }>;
+  organizations?: Array<{ name?: string; title?: string }>;
+  resourceName?: string;
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -32,9 +40,13 @@ serve(async (req) => {
       default:
         throw new Error('Invalid action')
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    let message = 'Unknown error';
+    if (typeof error === 'object' && error && 'message' in error && typeof (error as { message: string }).message === 'string') {
+      message = (error as { message: string }).message;
+    }
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -43,7 +55,7 @@ serve(async (req) => {
   }
 })
 
-async function handleCodeExchange(code: string, supabaseClient: any) {
+async function handleCodeExchange(code: string, supabaseClient: SupabaseClient) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
   const redirectUri = Deno.env.get('GOOGLE_REDIRECT_URI')
@@ -98,7 +110,7 @@ async function handleCodeExchange(code: string, supabaseClient: any) {
   )
 }
 
-async function handleTokenRefresh(refreshToken: string, supabaseClient: any) {
+async function handleTokenRefresh(refreshToken: string, supabaseClient: SupabaseClient) {
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
 
@@ -137,7 +149,7 @@ async function handleTokenRefresh(refreshToken: string, supabaseClient: any) {
   )
 }
 
-async function handleGetContacts(supabaseClient: any) {
+async function handleGetContacts(supabaseClient: SupabaseClient) {
   const { data: { user } } = await supabaseClient.auth.getUser()
   
   // Get stored tokens
@@ -174,7 +186,7 @@ async function handleGetContacts(supabaseClient: any) {
   const contactsData = await contactsResponse.json()
   
   // Transform Google contacts to Rhiz format
-  const contacts = contactsData.connections?.map((contact: any) => ({
+  const contacts = contactsData.connections?.map((contact: GoogleContact) => ({
     name: contact.names?.[0]?.displayName || '',
     email: contact.emailAddresses?.[0]?.value || '',
     phone: contact.phoneNumbers?.[0]?.value || '',

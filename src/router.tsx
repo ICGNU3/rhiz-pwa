@@ -16,6 +16,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Trust = lazy(() => import('./pages/Trust'));
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
+const RootMembership = lazy(() => import('./pages/RootMembership'));
 
 const AppRouter = () => {
   return (
@@ -23,6 +24,7 @@ const AppRouter = () => {
       <Route element={<PublicRoute />}>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/root-membership" element={<RootMembership />} />
       </Route>
 
       <Route path="/app" element={<PrivateAlphaRoute />}>

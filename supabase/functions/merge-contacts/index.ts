@@ -65,7 +65,11 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       status: 200,
     });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), { status: 500 });
+  } catch (error: unknown) {
+    let message = 'Unknown error';
+    if (typeof error === 'object' && error && 'message' in error && typeof (error as { message: string }).message === 'string') {
+      message = (error as { message: string }).message;
+    }
+    return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }); 

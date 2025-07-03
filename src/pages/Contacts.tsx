@@ -14,8 +14,7 @@ import { getContacts, createContact, Contact, aiCategorizeAndLinkContacts, enric
 import { useRealTimeContacts } from '../hooks/useRealTimeContacts';
 import { sortContacts, applyContactFilters } from '../utils/helpers';
 import { useNotifications, createNotification } from '../context/NotificationContext';
-import { useBehaviorTracking } from '../hooks/useBehaviorTracking';
-import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
+import { useAdaptiveBehavior } from '../hooks/useAdaptiveBehavior';
 import UpgradePrompt from '../components/UpgradePrompt';
 
 // Filter state type
@@ -51,14 +50,12 @@ const Contacts: React.FC = () => {
   });
 
   const {
-    recordSearch,
-    recordFeature,
-    recordTiming,
-    getSearchStats,
-    getFeatureStats,
-  } = useBehaviorTracking();
+    recordAdaptiveBehavior,
+    getContextualSuggestions,
+    getAdaptiveRecommendations
+  } = useAdaptiveBehavior();
 
-  const { suggestions } = useContextualSuggestions('contacts');
+  const suggestions = getContextualSuggestions('contacts');
   const [showSuggestions, setShowSuggestions] = useState(true);
 
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -69,32 +66,32 @@ const Contacts: React.FC = () => {
   const [webInfoNotice, setWebInfoNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    recordTiming(); // Track app open/check-in
-  }, [recordTiming]);
+    recordAdaptiveBehavior('timing', { time: new Date().toLocaleTimeString() }); // Track app open/check-in
+  }, [recordAdaptiveBehavior]);
 
   // Example: Track search type usage
   useEffect(() => {
     if (searchTerm) {
       // Guess search type: byName, byCompany, byTag, byTitle
-      if (/^[a-zA-Z\s]+$/.test(searchTerm)) recordSearch('byName');
-      if (localContacts.some(c => c.company.toLowerCase().includes(searchTerm.toLowerCase()))) recordSearch('byCompany');
-      if (localContacts.some(c => c.tags && c.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))) recordSearch('byTag');
-      if (localContacts.some(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))) recordSearch('byTitle');
+      if (/^[a-zA-Z\s]+$/.test(searchTerm)) recordAdaptiveBehavior('search', { type: 'byName' });
+      if (localContacts.some(c => c.company.toLowerCase().includes(searchTerm.toLowerCase()))) recordAdaptiveBehavior('search', { type: 'byCompany' });
+      if (localContacts.some(c => c.tags && c.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))) recordAdaptiveBehavior('search', { type: 'byTag' });
+      if (localContacts.some(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))) recordAdaptiveBehavior('search', { type: 'byTitle' });
     }
     // eslint-disable-next-line
-  }, [searchTerm]);
+  }, [searchTerm, recordAdaptiveBehavior]);
 
   // Example: Track filter usage
   useEffect(() => {
-    if (filters.health.length) recordSearch('health');
-    if (filters.tags.length) recordSearch('tag');
-    if (filters.trustScore[0] > 0 || filters.trustScore[1] < 100) recordSearch('trustScore');
-    if (filters.lastContacted.from || filters.lastContacted.to) recordSearch('lastContacted');
-    if (filters.hasEmail) recordSearch('hasEmail');
-    if (filters.hasPhone) recordSearch('hasPhone');
-    if (filters.recentlyAdded) recordSearch('recentlyAdded');
+    if (filters.health.length) recordAdaptiveBehavior('search', { type: 'health' });
+    if (filters.tags.length) recordAdaptiveBehavior('search', { type: 'tag' });
+    if (filters.trustScore[0] > 0 || filters.trustScore[1] < 100) recordAdaptiveBehavior('search', { type: 'trustScore' });
+    if (filters.lastContacted.from || filters.lastContacted.to) recordAdaptiveBehavior('search', { type: 'lastContacted' });
+    if (filters.hasEmail) recordAdaptiveBehavior('search', { type: 'hasEmail' });
+    if (filters.hasPhone) recordAdaptiveBehavior('search', { type: 'hasPhone' });
+    if (filters.recentlyAdded) recordAdaptiveBehavior('search', { type: 'recentlyAdded' });
     // eslint-disable-next-line
-  }, [filters]);
+  }, [filters, recordAdaptiveBehavior]);
 
   // Enable real-time updates
   useRealTimeContacts();

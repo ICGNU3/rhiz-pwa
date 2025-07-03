@@ -1,5 +1,15 @@
 # Rhiz - Intelligent Relationship Engine
 
+> **Contributing?** Please read our [CONTRIBUTING.md](./CONTRIBUTING.md) for our feature-branch workflow, testing, and code quality guidelines.
+
+## Branching Model (Summary)
+- **main**: Integration branch for all features. Only merge tested, stable features here.
+- **feature/relationship-tracking**: Relationship tracking features (health scoring, behavioral tracking, contextual suggestions, etc.)
+- **feature/auth-profiles**: User authentication and profile management (OAuth, onboarding, upgrade prompts, etc.)
+- **feature/contact-management**: Contact management features (bulk ops, templates, advanced search, etc.)
+- **feature/analytics-intelligence**: Analytics and intelligence features (network analytics, AI suggestions, etc.)
+- **feature/pwa-infra**: PWA, performance, and infrastructure improvements (code splitting, offline support, security, etc.)
+
 > Transform your scattered contacts into an intelligent relationship engine with trust scores, goal-driven matching, and AI assistance.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
