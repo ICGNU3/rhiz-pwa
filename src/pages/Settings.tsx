@@ -32,6 +32,7 @@ import { supabase } from '../api/client';
 import Modal from '../components/Modal';
 import { calendlyAPI, zoomAPI, googleMeetAPI } from '../api/integrations';
 import AdaptiveSettings from '../components/settings/AdaptiveSettings';
+import PlatformIntegrationsPanel from '../components/settings/PlatformIntegrationsPanel';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
@@ -1154,6 +1155,10 @@ const Settings: React.FC = () => {
                   </button>
                 </div>
                 {connectMsg && <div className="text-green-700 text-sm mt-1">{connectMsg}</div>}
+              </div>
+
+              <div className="mt-8">
+                <PlatformIntegrationsPanel />
               </div>
             </Card>
           </div>

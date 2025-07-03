@@ -42,6 +42,19 @@ export interface IntegrationStatus {
   last_sync?: string;
 }
 
+export interface PlatformIntegration {
+  id?: string;
+  user_id: string;
+  platform: string;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: string;
+  scopes?: string[];
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Calendly Integration
 export const calendlyAPI = {
   async connect(apiKey: string): Promise<{ success: boolean; user: IntegrationUser }> {
@@ -300,4 +313,41 @@ export const integrationsAPI = {
       }
     }
   },
-}; 
+};
+
+export async function getPlatformIntegrations(): Promise<PlatformIntegration[]> {
+  const { data, error } = await supabase
+    .from('relationship_platform_integrations')
+    .select('*');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addPlatformIntegration(integration: Omit<PlatformIntegration, 'id' | 'created_at' | 'updated_at'>): Promise<PlatformIntegration> {
+  const { data, error } = await supabase
+    .from('relationship_platform_integrations')
+    .insert([integration])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePlatformIntegration(id: string, updates: Partial<PlatformIntegration>): Promise<PlatformIntegration> {
+  const { data, error } = await supabase
+    .from('relationship_platform_integrations')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deletePlatformIntegration(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('relationship_platform_integrations')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+} 

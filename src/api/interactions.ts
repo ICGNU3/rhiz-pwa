@@ -12,6 +12,9 @@ export interface RelationshipInteraction {
   duration?: number;
   notes?: string;
   created_at?: string;
+  source?: string; // 'manual', 'email', 'calendar', 'linkedin', etc.
+  external_id?: string; // platform-specific unique id
+  raw_metadata?: Record<string, any>; // platform-specific metadata
 }
 
 export interface RelationshipInsight {
