@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlatformIntegrations } from '../../hooks/usePlatformIntegrations';
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -13,7 +13,39 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 export default function PlatformIntegrationsPanel() {
-  const { integrations, loading, error, removeIntegration } = usePlatformIntegrations();
+  const { integrations, loading, error, removeIntegration, addIntegration } = usePlatformIntegrations();
+  const [connecting, setConnecting] = useState(false);
+
+  // Handler for Gmail OAuth
+  const handleConnectGmail = async () => {
+    setConnecting(true);
+    try {
+      const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+      const redirectUri = window.location.origin + '/oauth-callback';
+      const scope = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'openid'
+      ].join(' ');
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
+      window.open(authUrl, 'google-oauth', 'width=500,height=600');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  // Listen for OAuth callback (window message)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'google-oauth-success') {
+        // After successful OAuth, reload integrations (or the page)
+        window.location.reload();
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -39,7 +71,16 @@ export default function PlatformIntegrationsPanel() {
           </li>
         ))}
       </ul>
-      {/* TODO: Add connect buttons for each platform (OAuth flows) */}
+      <div className="flex gap-4 mt-6">
+        <button
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded font-medium shadow disabled:opacity-60"
+          onClick={handleConnectGmail}
+          disabled={connecting}
+        >
+          {connecting ? 'Connecting…' : 'Connect Gmail'}
+        </button>
+        {/* Add more connect buttons for other platforms as needed */}
+      </div>
       <div className="mt-4 text-xs text-gray-400">
         You control which platforms are connected. Data is encrypted and never shared without your consent.
       </div>
