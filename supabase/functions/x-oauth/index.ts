@@ -6,6 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+type XFollower = {
+  name: string;
+  username: string;
+  profile_image_url?: string;
+  description?: string;
+  id: string;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -142,7 +150,7 @@ serve(async (req) => {
         }
         const followersData = await followersResp.json();
         // Transform to contact format
-        const contacts = (followersData.data || []).map((f: any) => ({
+        const contacts = (followersData.data || []).map((f: XFollower) => ({
           name: f.name,
           email: '', // X does not provide email
           phone: '',

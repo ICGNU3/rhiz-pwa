@@ -4,10 +4,11 @@ import { Users, TrendingUp, HeartHandshake, Goal } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import SuggestedActions from '../components/dashboard/SuggestedActions';
+import AdaptiveDashboard from '../components/dashboard/AdaptiveDashboard';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import { getDashboardStats } from '../api/dashboard';
-import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
+import { useAdaptiveBehavior } from '../hooks/useAdaptiveBehavior';
 import { useNotifications, createNotification } from '../context/NotificationContext';
 
 const Dashboard: React.FC = () => {
@@ -17,8 +18,9 @@ const Dashboard: React.FC = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const { suggestions } = useContextualSuggestions('dashboard');
+  const { getContextualSuggestions } = useAdaptiveBehavior();
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const suggestions = getContextualSuggestions('dashboard');
 
   // Network Insights state
   type Insight = {
@@ -102,7 +104,7 @@ const Dashboard: React.FC = () => {
         <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border border-blue-200 shadow flex flex-col gap-2 relative">
           <button className="absolute top-2 right-2 text-xs text-blue-500" onClick={() => setShowSuggestions(false)} aria-label="Dismiss suggestions">&times;</button>
           <div className="font-semibold text-blue-900 mb-1">Suggestions for you</div>
-          {suggestions.map((s, i) => (
+          {suggestions.map((s: string, i: number) => (
             <div key={i} className="text-sm text-blue-800">{s}</div>
           ))}
         </div>

@@ -5,6 +5,7 @@ import {
   Sun,
   Download,
   MessageSquare,
+  BarChart2
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 

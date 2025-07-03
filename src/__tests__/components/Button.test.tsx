@@ -9,13 +9,20 @@ describe('Button Component', () => {
     render(<Button>Click me</Button>);
     const button = screen.getByRole('button', { name: /click me/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass('bg-indigo-600'); // primary variant
+    expect(button).toHaveClass('bg-gradient-to-r');
+    expect(button).toHaveClass('from-aqua');
+    expect(button).toHaveClass('via-emerald');
+    expect(button).toHaveClass('to-lavender');
+    expect(button).toHaveClass('text-white');
   });
 
   it('applies variant classes correctly', () => {
     render(<Button variant="secondary">Secondary</Button>);
     const button = screen.getByRole('button', { name: /secondary/i });
-    expect(button).toHaveClass('bg-purple-600');
+    expect(button).toHaveClass('bg-gradient-to-r');
+    expect(button).toHaveClass('from-lavender');
+    expect(button).toHaveClass('to-emerald');
+    expect(button).toHaveClass('text-white');
   });
 
   it('applies size classes correctly', () => {

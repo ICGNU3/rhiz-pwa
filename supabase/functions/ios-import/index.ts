@@ -6,6 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+type AppleContact = {
+  firstName?: string;
+  lastName?: string;
+  phoneNumbers?: PhoneNumber[];
+  emailAddresses?: EmailAddress[];
+  organization?: string;
+  jobTitle?: string;
+  notes?: string;
+};
+
+type PhoneNumber = {
+  label: string;
+  value: string;
+};
+
+type EmailAddress = {
+  label: string;
+  value: string;
+};
+
+type RhizContact = {
+  user_id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company: string;
+  title: string;
+  notes: string;
+  tags: string[];
+  source: string;
+  healthScore: number;
+  relationship_strength: string;
+  enriched: boolean;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,7 +48,7 @@ serve(async (req) => {
   }
 
   try {
-    const { contacts, source } = await req.json()
+    const { contacts } = await req.json()
     
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -42,11 +77,11 @@ serve(async (req) => {
 
     const userId = session.user.id
     const errors: string[] = []
-    const validContacts: any[] = []
+    const validContacts: RhizContact[] = []
 
     // Process and validate contacts
     for (let i = 0; i < contacts.length; i++) {
-      const contact = contacts[i]
+      const contact: AppleContact = contacts[i]
       
       // Basic validation
       if (!contact.firstName && !contact.lastName) {
@@ -65,21 +100,21 @@ serve(async (req) => {
         .join(' ')
         .trim()
 
-      const phone = contact.phoneNumbers?.find((p: any) => 
+      const phone = contact.phoneNumbers?.find((p: PhoneNumber) => 
         p.label.toLowerCase().includes('mobile') || 
         p.label.toLowerCase().includes('iphone')
       )?.value || 
-      contact.phoneNumbers?.find((p: any) => 
+      contact.phoneNumbers?.find((p: PhoneNumber) => 
         p.label.toLowerCase().includes('work')
       )?.value ||
       contact.phoneNumbers?.[0]?.value
 
-      const email = contact.emailAddresses?.find((e: any) => 
+      const email = contact.emailAddresses?.find((e: EmailAddress) => 
         e.label.toLowerCase().includes('work')
       )?.value ||
       contact.emailAddresses?.[0]?.value
 
-      const mappedContact = {
+      const mappedContact: RhizContact = {
         user_id: userId,
         name,
         email,
@@ -115,7 +150,7 @@ serve(async (req) => {
 
     // Check for duplicates and insert unique contacts
     let duplicates = 0
-    const uniqueContacts: any[] = []
+    const uniqueContacts: RhizContact[] = []
 
     for (const contact of validContacts) {
       // Check for existing contacts with same email or phone
@@ -179,7 +214,7 @@ serve(async (req) => {
       )
     }
 
-    const contactIds = insertedContacts?.map((c: any) => c.id) || []
+    const contactIds = insertedContacts?.map((c: { id: string }) => c.id) || []
 
     return new Response(
       JSON.stringify({ 
