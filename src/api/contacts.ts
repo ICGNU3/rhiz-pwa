@@ -11,7 +11,7 @@ export const getContacts = async (): Promise<Contact[]> => {
       return demoContacts;
     }
 
-    let data: any[] = [];
+    let data: Contact[] = [];
     let error = null;
 
     try {
@@ -172,7 +172,7 @@ export const deleteContact = async (contactId: string): Promise<void> => {
 };
 
 // Real-time subscription with error handling
-export const subscribeToContacts = (callback: (payload: any) => void) => {
+export const subscribeToContacts = (callback: (payload: unknown) => void) => {
   try {
     return supabase
       .channel('contacts')
@@ -224,7 +224,7 @@ export const contactsApi = {
     return authUrl.toString()
   },
 
-  async handleGoogleOAuthCallback(code: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  async handleGoogleOAuthCallback(code: string): Promise<{ success: boolean; user?: unknown; error?: string }> {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No active session')
@@ -285,7 +285,7 @@ export const contactsApi = {
     }
   },
 
-  async getGoogleIntegrationStatus(): Promise<{ connected: boolean; user?: any }> {
+  async getGoogleIntegrationStatus(): Promise<{ connected: boolean; user?: unknown }> {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return { connected: false }
@@ -507,4 +507,52 @@ export const contactsApi = {
 
     return data || []
   }
+}
+
+// Call the AI contact categorization and linking Edge Function
+export async function aiCategorizeAndLinkContacts(contacts: Contact[]): Promise<{ enrichedContacts: Contact[]; suggestedMerges: Record<string, unknown>[] }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('ai-contact-categorize-link', {
+    body: { contacts },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+// Call the contact web enrichment Edge Function
+export async function enrichContactWithWebSearch(contact: Partial<Contact>): Promise<Record<string, unknown>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('contact-web-enrich', {
+    body: contact,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) throw error;
+  return data?.enriched;
+}
+
+// Call the merge contacts Edge Function
+export async function mergeContacts(ids: string[]): Promise<{ success: boolean; message?: string; error?: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase.functions.invoke('merge-contacts', {
+    body: { ids },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) throw error;
+  return data;
 }

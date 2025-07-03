@@ -1,4 +1,3 @@
-
 import { supabase } from './client';
 import { demoTrustMetrics } from '../data/demoData';
 
@@ -33,7 +32,7 @@ export const getTrustMetrics = async () => {
       return demoTrustMetrics;
     }
 
-    let contacts = [];
+    let contacts: Array<{ trust_score?: number; relationship_strength?: string; last_contact?: string; name?: string; email?: string; }> = [];
     
     try {
       const { data: contactsData, error: contactsError } = await supabase
@@ -249,9 +248,9 @@ export const exportTrustData = async () => {
 };
 
 // Update privacy settings - using in-memory storage instead of localStorage
-let tempPrivacySettings: any = null;
+let tempPrivacySettings: unknown = null;
 
-export const updatePrivacySettings = async (settings: any) => {
+export const updatePrivacySettings = async (settings: unknown) => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
@@ -326,7 +325,7 @@ export const getPrivacySettings = async () => {
 };
 
 // Real-time subscription with error handling
-export const subscribeToTrustChanges = (callback: (payload: any) => void) => {
+export const subscribeToTrustChanges = (callback: (payload: unknown) => void) => {
   try {
     return supabase
       .channel('trust_changes')

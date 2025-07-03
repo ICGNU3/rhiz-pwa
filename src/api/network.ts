@@ -118,13 +118,13 @@ export const getNetworkData = async (filters: NetworkFilters = {}) => {
     }
 
     // Analyze contacts for network data
-    const companies = contacts.reduce((acc: any, contact: any) => {
+    const companies = contacts.reduce((acc: Record<string, number>, contact: { company?: string }) => {
       const companyName = contact.company || 'Unknown Company';
       acc[companyName] = (acc[companyName] || 0) + 1;
       return acc;
     }, {});
     
-    const locations = contacts.reduce((acc: any, contact: any) => {
+    const locations = contacts.reduce((acc: Record<string, number>, contact: { location?: string }) => {
       if (contact.location) {
         acc[contact.location] = (acc[contact.location] || 0) + 1;
       }
@@ -132,13 +132,13 @@ export const getNetworkData = async (filters: NetworkFilters = {}) => {
     }, {});
     
     const topCompanies = Object.entries(companies)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a: any, b: any) => b.count - a.count)
+      .map(([name, count]) => ({ name, count: count as number }))
+      .sort((a: { name: string; count: number }, b: { name: string; count: number }) => b.count - a.count)
       .slice(0, 10);
       
     const topLocations = Object.entries(locations)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a: any, b: any) => b.count - a.count)
+      .map(([name, count]) => ({ name, count: count as number }))
+      .sort((a: { name: string; count: number }, b: { name: string; count: number }) => b.count - a.count)
       .slice(0, 10);
 
     // Calculate network metrics
@@ -175,7 +175,7 @@ export const getNetworkData = async (filters: NetworkFilters = {}) => {
 };
 
 // Real-time subscription for network changes
-export const subscribeToNetworkChanges = (callback: (payload: any) => void) => {
+export const subscribeToNetworkChanges = (callback: (payload: unknown) => void) => {
   try {
     return supabase
       .channel('network')

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from '../ui/Button';
 import { useContextualSuggestions } from '../../hooks/useContextualSuggestions';
 

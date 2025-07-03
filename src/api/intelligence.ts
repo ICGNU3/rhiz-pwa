@@ -343,7 +343,7 @@ export const getChatHistory = async (limit = 20) => {
 };
 
 // Real-time subscription with error handling
-export const subscribeToAIInsights = (callback: (payload: any) => void) => {
+export const subscribeToAIInsights = (callback: (payload: unknown) => void) => {
   try {
     return supabase
       .channel('ai_insights')

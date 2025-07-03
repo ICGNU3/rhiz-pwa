@@ -61,9 +61,9 @@ const Login: React.FC = () => {
       await login(email);
       setEmailSent(true);
       console.log('Magic link sent successfully');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to send magic link. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send magic link. Please try again.');
     } finally {
       setLoading(false);
     }

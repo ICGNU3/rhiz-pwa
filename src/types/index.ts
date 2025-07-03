@@ -3,7 +3,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  user_metadata?: any;
+  user_metadata?: Record<string, unknown>;
 }
 
 export interface Contact {
@@ -30,6 +30,7 @@ export interface Contact {
   created_at?: string;
   updated_at?: string;
   lastContacted?: Date;
+  [key: string]: unknown; // Allow dynamic field access
 }
 
 export interface Goal {
@@ -150,7 +151,7 @@ export interface TrustAlert {
 export interface ImportResult {
   success: number;
   errors: string[];
-  data: any[];
+  data: unknown[];
   duplicates: number;
   enriched: number;
 }

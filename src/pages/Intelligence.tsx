@@ -22,7 +22,7 @@ const Intelligence: React.FC = () => {
   });
 
   // Fetch network insights from edge function
-  const { data: networkInsights, isLoading: networkLoading } = useQuery({
+  const { data: networkInsights } = useQuery({
     queryKey: ['network-insights'],
     queryFn: getNetworkInsights,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -404,7 +404,7 @@ const Intelligence: React.FC = () => {
                         
                         {networkInsights.insights && networkInsights.insights.length > 0 && (
                           <div className="space-y-4">
-                            {networkInsights.insights.map((insight: any, index: number) => (
+                            {networkInsights.insights.map((insight: { impact: string; message: string; action: string; title: string; description: string }, index: number) => (
                               <div key={index} className={`p-4 rounded-lg border ${
                                 insight.impact === 'high' ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' :
                                 insight.impact === 'medium' ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20' :

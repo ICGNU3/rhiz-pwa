@@ -246,6 +246,19 @@ Add as repository secrets in GitHub settings
 - [ ] CSP headers configured
 - [ ] Environment variables not exposed
 
+## PHASE 3: Telegram Integration
+
+### Telegram Bot Integration
+- [ ] Telegram Bot setup (@RhizBot)
+- [ ] User onboarding flow for connecting Telegram
+- [ ] Message frequency and engagement analysis
+- [ ] Group participation and member analysis
+- [ ] Contact enrichment (match Telegram usernames to Rhiz contacts)
+- [ ] Smart notifications (relationship health, group events)
+- [ ] Privacy-first: Only metadata, not message content
+- [ ] (Optional) Telegram data export/import support
+- [ ] (Optional) Browser extension for Telegram Web
+
 ## Troubleshooting
 
 ### Common Issues
@@ -287,3 +300,15 @@ Consider adding error tracking:
 - UptimeRobot
 - Pingdom
 - StatusCake 
+
+Next step:
+Run the following command and follow the prompts to link your local project to your Supabase project:
+```sh
+supabase login
+```
+Would you like me to propose this command for you, or do you want to handle the linking process yourself (you'll need your Supabase project ref and access token)? Once linked, I can proceed with the migration and backend work. 
+
+After logging in, you can link the project with:
+```sh
+supabase link
+``` 

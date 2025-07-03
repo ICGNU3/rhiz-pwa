@@ -15,7 +15,7 @@ export const usePwaStatus = (): PWAStatus => {
     // Check if app is installed (running in standalone mode)
     const checkInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isInWebAppiOS = (window.navigator as any).standalone === true;
+      const isInWebAppiOS = (window.navigator as unknown) as boolean;
       setIsInstalled(isStandalone || isInWebAppiOS);
     };
 

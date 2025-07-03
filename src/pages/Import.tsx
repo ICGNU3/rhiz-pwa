@@ -1,46 +1,70 @@
 import React, { useState, useRef } from 'react';
+import { 
+  Upload, 
+  Building, 
+  Users, 
+  CheckCircle, 
+  Check, 
+  FileText,
+  Mail,
+  ArrowLeft,
+  ArrowRight,
+  AlertTriangle
+} from 'lucide-react';
+import Button from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Contact } from '../types';
+import Modal from '../components/Modal';
+import Spinner from '../components/Spinner';
+import { createContact, aiCategorizeAndLinkContacts, enrichContactWithWebSearch, getContacts as fetchContacts } from '../api/contacts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, CheckCircle, AlertTriangle, Download, Users, Mail, Building, MapPin, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
-import Papa from 'papaparse';
-import Card from '../components/Card';
-import Button from '../components/ui/Button';
-import Spinner from '../components/Spinner';
-import ContactForm from '../components/contacts/ContactForm';
-import ContactSearch from '../components/contacts/ContactSearch';
-import { createContact } from '../api/contacts';
-import { iosImportApi } from '../api/ios-import';
-import { contactsApi } from '../api/contacts';
-import type { Contact } from '../types';
-
-interface ImportResult {
-  success: number;
-  errors: string[];
-  data: any[];
-  duplicates: number;
-  enriched: number;
-}
-
-interface ImportStats {
-  totalProcessed: number;
-  newContacts: number;
-  duplicatesFound: number;
-  dataEnriched: number;
-  trustScoresCalculated: number;
-}
 
 interface ParsedContact {
-  [key: string]: string;
+  name: string;
+  email: string;
+  company: string;
+  title: string;
+  phone?: string;
+  notes?: string;
+  [key: string]: string | undefined;
 }
 
 interface ColumnMapping {
-  [csvColumn: string]: string;
+  name: string;
+  email: string;
+  company: string;
+  title: string;
+  phone?: string;
+  notes?: string;
+  [key: string]: string | undefined;
+}
+
+interface ImportResult {
+  success: boolean;
+  imported: number;
+  errors: number;
+  duplicates: number;
+  message: string;
+}
+
+interface ImportStats {
+  total: number;
+  imported: number;
+  errors: number;
+  duplicates: number;
+  skipped: number;
 }
 
 interface ImportPreview {
   contacts: Contact[];
   source: 'csv' | 'ios-shortcuts' | 'google';
   fileName?: string;
+}
+
+// Type guard for Contact
+function isValidContact(obj: unknown): obj is Contact {
+  return obj !== null && typeof obj === 'object' && 'name' in obj && 'email' in obj;
 }
 
 const Import: React.FC = () => {
@@ -51,63 +75,78 @@ const Import: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedContact[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
+    name: '',
+    email: '',
+    company: '',
+    title: '',
+    phone: '',
+    notes: ''
+  });
   const [importProgress, setImportProgress] = useState(0);
-  const [previewContacts, setPreviewContacts] = useState<any[]>([]);
+  const [previewContacts, setPreviewContacts] = useState<unknown[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [relationshipFilter, setRelationshipFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [file, setFile] = useState<File | null>(null);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [iosImportData, setIosImportData] = useState<string>('');
-  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [suggestedMerges, setSuggestedMerges] = useState<unknown[]>([]);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [mergeTargetIds, setMergeTargetIds] = useState<string[]>([]);
+  const [mergeContactsData, setMergeContactsData] = useState<Contact[]>([]);
+  const [mergeSuccess, setMergeSuccess] = useState<string | null>(null);
+  const [mergeLoading, setMergeLoading] = useState(false);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const importMutation = useMutation({
-    mutationFn: async (contacts: any[]) => {
+    mutationFn: async (contacts: Contact[]): Promise<{ results: Contact[]; errors: string[]; duplicates: number; enriched: number }> => {
       setImporting(true);
       setImportProgress(0);
       
-      const results = [];
-      const errors = [];
-      let duplicates = 0;
+      // --- AI enrichment and deduplication step ---
+      let enrichedContacts = contacts;
+      let merges: Contact[] = [];
+      try {
+        const aiResult = await aiCategorizeAndLinkContacts(contacts);
+        enrichedContacts = aiResult.enrichedContacts as Contact[];
+        merges = aiResult.suggestedMerges as Contact[];
+        setSuggestedMerges(merges);
+      } catch (err) {
+        console.error('AI enrichment failed, proceeding without:', err);
+      }
+
+      // --- Web enrichment step ---
+      for (let i = 0; i < enrichedContacts.length; i++) {
+        try {
+          setImportProgress(Math.round(((i + 1) / enrichedContacts.length) * 100));
+          const webInfo = await enrichContactWithWebSearch({
+            name: enrichedContacts[i].name,
+            email: enrichedContacts[i].email,
+            company: enrichedContacts[i].company,
+          });
+          enrichedContacts[i] = { ...enrichedContacts[i], webInfo };
+        } catch (err) {
+          // Ignore web enrichment errors for now
+        }
+      }
+
+      const results: Contact[] = [];
+      const errors: string[] = [];
+      const duplicates = 0;
       let enriched = 0;
 
       // Process contacts one by one with progress updates
-      for (let i = 0; i < contacts.length; i++) {
+      for (let i = 0; i < enrichedContacts.length; i++) {
         try {
-          const contact = contacts[i];
-          
-          // Simulate AI enrichment
-          const isEnriched = Math.random() > 0.3;
-          if (isEnriched) enriched++;
-
-          const enhancedContact = {
-            ...contact,
-            trust_score: isEnriched ? Math.floor(Math.random() * 30) + 70 : undefined,
-            engagement_trend: isEnriched ? ['up', 'down', 'stable'][Math.floor(Math.random() * 3)] : undefined,
-            relationship_strength: isEnriched ? ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)] : undefined,
-            mutual_connections: isEnriched ? Math.floor(Math.random() * 15) + 1 : 0,
-            relationship_type: contact.relationship_type || ['colleague', 'friend', 'client', 'partner'][Math.floor(Math.random() * 4)],
-            source: 'import',
-            enriched: isEnriched
-          };
-
-          await createContact(enhancedContact);
-          results.push(enhancedContact);
-          
-          // Update progress
-          setImportProgress(Math.round(((i + 1) / contacts.length) * 100));
-          
-          // Small delay to show progress
+          const contact = enrichedContacts[i];
+          if (contact.enriched) enriched++;
+          await createContact(contact as Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
+          results.push(contact);
+          setImportProgress(Math.round(((i + 1) / enrichedContacts.length) * 100));
           await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.error('Error importing contact:', error);
-          errors.push(`Failed to import ${contacts[i].name}: ${error}`);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error('Error importing contact:', message);
+          errors.push(`Failed to import ${enrichedContacts[i].name}: ${message}`);
         }
       }
       
@@ -120,25 +159,26 @@ const Import: React.FC = () => {
       setImporting(false);
       
       setResult({
-        success: data.results.length,
-        errors: data.errors,
-        data: data.results,
+        success: data.results.length > 0,
+        imported: data.results.length,
+        errors: data.errors.length,
         duplicates: data.duplicates,
-        enriched: data.enriched
+        message: data.results.length > 0 ? 'Import completed successfully!' : 'No contacts imported.'
       });
 
       setImportStats({
-        totalProcessed: parsedData.length,
-        newContacts: data.results.length,
-        duplicatesFound: data.duplicates,
-        dataEnriched: data.enriched,
-        trustScoresCalculated: data.results.filter(c => c.trust_score).length
+        total: parsedData.length,
+        imported: data.results.length,
+        errors: data.errors.length,
+        duplicates: data.duplicates,
+        skipped: data.results.length - data.duplicates
       });
 
       setCurrentStep(4);
     },
-    onError: (error) => {
-      console.error('Import failed:', error);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Import failed:', message);
       setImporting(false);
     }
   });
@@ -147,95 +187,73 @@ const Import: React.FC = () => {
   const optionalFields = ['phone', 'location', 'tags', 'notes'];
   const allFields = [...requiredFields, ...optionalFields];
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setImporting(true);
+  const handleFileUpload = async (file: File) => {
     try {
       const text = await file.text();
-      const contacts = Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (header: string) => header.trim(),
-        complete: (results) => {
-          if (Object.keys(results.data[0] || {}).length >= 3) {
-            const cleanData = (results.data as ParsedContact[]).filter(row => {
-              const values = Object.values(row);
-              const hasRealData = values.some(value => 
-                value && 
-                typeof value === 'string' && 
-                value.length > 0 && 
-                !value.includes('linkedin.com') && 
-                !value.includes('psettings') &&
-                !value.includes('When exporting')
-              );
-              return hasRealData;
-            });
-            
-            if (cleanData.length === 0) {
-              console.error('No valid contact data found in CSV');
-              return;
-            }
-            
-            const headers = Object.keys(cleanData[0] || {});
-            setCsvHeaders(headers);
-            setParsedData(cleanData);
-            
-            // Ultra-flexible auto-mapping
-            const autoMapping: ColumnMapping = {};
-            headers.forEach(header => {
-              const lower = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-              
-              if (lower.includes('name') || lower.includes('first') || lower.includes('contact') || lower.includes('person')) {
-                autoMapping[header] = 'name';
-              }
-              else if (lower.includes('email') || lower.includes('mail')) {
-                autoMapping[header] = 'email';
-              }
-              else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('cell') || lower.includes('tel')) {
-                autoMapping[header] = 'phone';
-              }
-              else if (lower.includes('company') || lower.includes('org') || lower.includes('employer') || lower.includes('work')) {
-                autoMapping[header] = 'company';
-              }
-              else if (lower.includes('title') || lower.includes('position') || lower.includes('job') || lower.includes('role') || lower.includes('occupation')) {
-                autoMapping[header] = 'title';
-              }
-              else if (lower.includes('location') || lower.includes('city') || lower.includes('address') || lower.includes('region')) {
-                autoMapping[header] = 'location';
-              }
-              else if (lower.includes('tag') || lower.includes('skill') || lower.includes('category') || lower.includes('keyword') || lower.includes('interest')) {
-                autoMapping[header] = 'tags';
-              }
-              else if (lower.includes('note') || lower.includes('comment') || lower.includes('description') || lower.includes('bio') || lower.includes('about')) {
-                autoMapping[header] = 'notes';
-              }
-            });
-            
-            console.log('Auto-mapping result:', autoMapping);
-            setColumnMapping(autoMapping);
-            setCurrentStep(2);
-          } else {
-            console.log('Auto-detect failed - trying manual detection...');
-            // Could add manual detection here if needed
-          }
-        },
-        error: (error) => {
-          console.error('CSV parsing error:', error);
-        }
-      }).data;
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
       
-      setPreview({
-        contacts,
-        source: 'csv',
-        fileName: file.name
+      setCsvHeaders(headers);
+      
+      // Auto-map common column names
+      const autoMapping: ColumnMapping = {
+        name: '',
+        email: '',
+        company: '',
+        title: '',
+        phone: '',
+        notes: ''
+      };
+      
+      headers.forEach(header => {
+        const lowerHeader = header.toLowerCase();
+        if (lowerHeader.includes('name') || lowerHeader.includes('full')) {
+          autoMapping.name = header;
+        } else if (lowerHeader.includes('email')) {
+          autoMapping.email = header;
+        } else if (lowerHeader.includes('company') || lowerHeader.includes('organization')) {
+          autoMapping.company = header;
+        } else if (lowerHeader.includes('title') || lowerHeader.includes('position') || lowerHeader.includes('job')) {
+          autoMapping.title = header;
+        } else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile')) {
+          autoMapping.phone = header;
+        } else if (lowerHeader.includes('note') || lowerHeader.includes('comment')) {
+          autoMapping.notes = header;
+        }
       });
+      
+      setColumnMapping(autoMapping);
+      
+      // Parse CSV data
+      const parsed: ParsedContact[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          const contact: ParsedContact = {
+            name: '',
+            email: '',
+            company: '',
+            title: '',
+            phone: '',
+            notes: ''
+          };
+          
+          headers.forEach((header, index) => {
+            if (autoMapping[header]) {
+              contact[autoMapping[header]!] = values[index] || '';
+            }
+          });
+          
+          parsed.push(contact);
+        }
+      }
+      
+      setParsedData(parsed);
+      setPreviewContacts(parsed.slice(0, 5));
+      setCurrentStep(2);
     } catch (error) {
       console.error('Error parsing CSV:', error);
-      alert('Error parsing CSV file. Please check the format.');
-    } finally {
-      setImporting(false);
+      // Handle error appropriately
     }
   };
 
@@ -243,15 +261,12 @@ const Import: React.FC = () => {
     e.preventDefault();
     setDragActive(false);
     
-    const files = Array.from(e.dataTransfer.files);
-    const csvFile = files.find(file => file.type === 'text/csv' || file.name.endsWith('.csv'));
-    
-    if (csvFile) {
-      // Create a mock event for the file upload
-      const mockEvent = {
-        target: { files: [csvFile] }
-      } as unknown as React.ChangeEvent<HTMLInputElement>;
-      handleFileUpload(mockEvent);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        handleFileUpload(file);
+      }
     }
   };
 
@@ -266,77 +281,81 @@ const Import: React.FC = () => {
   };
 
   const generatePreview = () => {
-    const mappedContacts = parsedData.slice(0, 5).map((row, index) => {
-      const contact: any = {
-        id: `preview-${index}`,
-        name: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'name') || ''] || 'Unknown',
-        email: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'email') || ''] || '',
-        phone: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'phone') || ''] || '',
-        company: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'company') || ''] || '',
-        title: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'title') || ''] || '',
-        location: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'location') || ''] || '',
-        notes: row[Object.keys(columnMapping).find(key => columnMapping[key] === 'notes') || ''] || '',
-        tags: (row[Object.keys(columnMapping).find(key => columnMapping[key] === 'tags') || ''] || '').split(',').map(tag => tag.trim()).filter(Boolean),
-        trust_score: Math.floor(Math.random() * 30) + 70,
-        relationship_strength: ['strong', 'medium', 'weak'][Math.floor(Math.random() * 3)],
-        mutual_connections: Math.floor(Math.random() * 10) + 1,
-        relationship_type: ['colleague', 'friend', 'client'][Math.floor(Math.random() * 3)]
-      };
-      return contact;
-    });
+    if (parsedData.length === 0) return;
     
-    setPreviewContacts(mappedContacts);
+    const preview = parsedData.slice(0, 5).map((contact, index) => ({
+      id: `preview-${index}`,
+      name: contact.name || 'Unknown',
+      email: contact.email || 'No email',
+      company: contact.company || 'Unknown company',
+      title: contact.title || 'No title',
+      phone: contact.phone || '',
+      notes: contact.notes || ''
+    }));
+    
+    setPreviewContacts(preview);
     setCurrentStep(3);
   };
 
-  const processImport = () => {
-    const validContacts = [];
-    const errors = [];
-
-    parsedData.forEach((row, index) => {
-      const mappedContact: any = {};
+  const processImport = async () => {
+    setImporting(true);
+    setImportProgress(0);
+    
+    try {
+      const contactsToImport = parsedData.map((contact) => ({
+        name: contact.name,
+        email: contact.email,
+        company: contact.company,
+        title: contact.title,
+        phone: contact.phone || '',
+        notes: contact.notes || ''
+      }));
       
-      // Map columns to contact fields
-      Object.keys(columnMapping).forEach(csvColumn => {
-        const fieldName = columnMapping[csvColumn];
-        if (fieldName && row[csvColumn]) {
-          if (fieldName === 'tags') {
-            mappedContact[fieldName] = row[csvColumn].split(',').map(tag => tag.trim()).filter(Boolean);
-          } else {
-            mappedContact[fieldName] = row[csvColumn];
-          }
-        }
+      const response = await fetch('/api/contacts/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ contacts: contactsToImport }),
       });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResult({
+          success: data.results.length > 0,
+          imported: data.results.length,
+          errors: data.errors.length,
+          duplicates: data.duplicates,
+          message: data.results.length > 0 ? 'Import completed successfully!' : 'No contacts imported.'
+        });
 
-      // Validation
-      if (!mappedContact.name || !mappedContact.email) {
-        errors.push(`Row ${index + 1}: Missing required fields (name, email)`);
-        return;
+        setImportStats({
+          total: parsedData.length,
+          imported: data.results.length,
+          errors: data.errors.length,
+          duplicates: data.duplicates,
+          skipped: data.results.length - data.duplicates
+        });
+        
+        setCurrentStep(4);
+      } else {
+        throw new Error(data.message || 'Import failed');
       }
-
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(mappedContact.email)) {
-        errors.push(`Row ${index + 1}: Invalid email format`);
-        return;
-      }
-
-      validContacts.push(mappedContact);
-    });
-
-    if (errors.length > 0) {
+    } catch (error) {
+      console.error('Import error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Import failed';
       setResult({
-        success: 0,
-        errors,
-        data: [],
+        success: false,
+        imported: 0,
+        errors: 1,
         duplicates: 0,
-        enriched: 0
+        message: errorMessage
       });
       setCurrentStep(4);
-      return;
+    } finally {
+      setImporting(false);
     }
-
-    importMutation.mutate(validContacts);
   };
 
   const downloadTemplate = () => {
@@ -356,10 +375,16 @@ const Import: React.FC = () => {
 
   const resetImport = () => {
     setCurrentStep(1);
-    setFile(null);
     setParsedData([]);
     setCsvHeaders([]);
-    setColumnMapping({});
+    setColumnMapping({
+      name: '',
+      email: '',
+      company: '',
+      title: '',
+      phone: '',
+      notes: ''
+    });
     setPreviewContacts([]);
     setResult(null);
     setImportStats(null);
@@ -373,133 +398,78 @@ const Import: React.FC = () => {
     { name: 'Apple Contacts', icon: Users, description: 'Sync iPhone/Mac contacts via iOS Shortcuts', status: 'available', action: () => navigate('/app/ios-shortcuts') }
   ];
 
-  const handleIOSImport = async () => {
-    if (!iosImportData.trim()) {
-      alert('Please paste the contact data from your iOS Shortcut');
-      return;
-    }
-
-    setImporting(true);
+  // Field-level merge handler
+  const openMergeModal = async (ids: string[]) => {
+    setMergeTargetIds(ids);
+    setMergeSuccess(null);
+    setMergeLoading(true);
     try {
-      // Parse the CSV data from shortcuts
-      const contacts = iosImportApi.parseShortcutsCSV(iosImportData);
-      
-      // Import contacts via the iOS API
-      const result = await iosImportApi.importContacts({
-        contacts,
-        source: 'ios-shortcuts'
+      // Fetch both contacts (assume fetchContacts returns all, filter by id)
+      const allContacts = await fetchContacts();
+      const contactsToMerge = allContacts.filter((c: any) => ids.includes(c.id));
+      setMergeContactsData((contactsToMerge as unknown[]).map(c => c as Contact));
+      // Default: prefer first contact's fields
+      const fields = {} as Record<string, string>;
+      if (contactsToMerge.length > 0) {
+        Object.keys(contactsToMerge[0]).forEach(key => {
+          fields[key] = contactsToMerge[0][key] as string;
+        });
+      }
+      setMergeModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching contacts for merge:', error);
+      setMergeContactsData([]);
+      setMergeModalOpen(true);
+    } finally {
+      setMergeLoading(false);
+    }
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    // Handle field changes if needed
+    console.log('Field changed:', field, value);
+  };
+
+  const handleMerge = async () => {
+    if (mergeTargetIds.length === 0) return;
+    
+    setMergeLoading(true);
+    try {
+      const response = await fetch('/api/contacts/merge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceIds: mergeTargetIds,
+          targetId: mergeTargetIds[0],
+        }),
       });
 
-      if (result.success) {
-        setResult({
-          success: result.imported,
-          errors: result.errors,
-          data: [],
-          duplicates: result.duplicates,
-          enriched: 0
-        });
-        
-        // Auto-redirect to contacts after successful import
-        setTimeout(() => {
-          navigate('/contacts', { 
-            state: { 
-              message: `Successfully imported ${result.imported} contacts from iOS Shortcuts!`,
-              importedCount: result.imported
-            }
-          });
-        }, 2000);
+      if (response.ok) {
+        setMergeSuccess('Contacts merged successfully!');
+        setMergeModalOpen(false);
+        // Refresh contacts list
+        // You might want to trigger a refetch here
       } else {
-        alert(`Import failed: ${result.message}`);
+        throw new Error('Failed to merge contacts');
       }
     } catch (error) {
-      console.error('iOS import error:', error);
-      alert('Error importing contacts. Please try again.');
+      console.error('Error merging contacts:', error);
+      setMergeSuccess('Failed to merge contacts');
     } finally {
-      setImporting(false);
+      setMergeLoading(false);
     }
   };
 
-  const handleGoogleSync = async () => {
-    setImporting(true);
-    try {
-      const authUrl = await contactsApi.initiateGoogleOAuth();
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error('Google OAuth error:', error);
-      alert('Error connecting to Google. Please try again.');
-    } finally {
-      setImporting(false);
-    }
+  const handleMergeFieldChange = (field: string, value: string) => {
+    // Handle merge field changes if needed
+    console.log('Merge field changed:', field, value);
   };
 
-  const downloadIOSShortcut = () => {
-    // Create iOS Shortcut instructions and download
-    const shortcutInstructions = `# Rhiz Contacts Export Shortcut
-
-## Setup Instructions:
-1. Open the Shortcuts app on your iPhone
-2. Tap the + button to create a new shortcut
-3. Add these actions in order:
-
-### Action 1: Get All Contacts
-- Search for "Get All Contacts"
-- Tap on it to add
-
-### Action 2: Get Details of Contacts
-- Search for "Get Details of Contacts"
-- Tap on it to add
-- Select these properties:
-  - First Name
-  - Last Name
-  - Organization
-  - Job Title
-  - Phone Numbers
-  - Email Addresses
-  - Notes
-
-### Action 3: Create CSV
-- Search for "Text"
-- Add a text action with this template:
-\`\`\`
-First Name,Last Name,Organization,Job Title,Phone,Email,Notes
-{{Repeat with each in Contacts}}
-{{First Name}},{{Last Name}},{{Organization}},{{Job Title}},{{Phone Numbers}},{{Email Addresses}},{{Notes}}
-{{End Repeat}}
-\`\`\`
-
-### Action 4: Copy to Clipboard
-- Search for "Copy to Clipboard"
-- Add it after the Text action
-
-### Action 5: Show Result
-- Search for "Show Result"
-- Set the text to: "Contacts exported! Copy the data and paste it into Rhiz."
-
-## Usage:
-1. Run the shortcut
-2. Copy the CSV data from clipboard
-3. Go to Rhiz Import page
-4. Paste the data in the iOS Shortcuts section
-5. Click "Import Contacts"
-
-## Alternative: Direct Web Import
-For automatic import, add this action after "Copy to Clipboard":
-- Search for "Get Contents of URL"
-- Set URL to: ${window.location.origin}/api/ios-import
-- Set Method to: POST
-- Add header: Content-Type: application/json
-- Set Request Body to: {"contacts": {{Shortcut Input}}, "source": "ios-shortcuts"}
-`;
-
-    const blob = new Blob([shortcutInstructions], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rhiz-ios-shortcut-setup.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleMergePreview = (contactIds: string[]) => {
+    setMergeTargetIds(contactIds);
+    setMergeModalOpen(true);
   };
 
   return (
@@ -608,13 +578,16 @@ For automatic import, add this action after "Copy to Clipboard":
                   ref={fileInputRef}
                   type="file"
                   accept=".csv"
-                  onChange={handleFileUpload}
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      handleFileUpload(e.target.files[0]);
+                    }
+                  }}
                   className="hidden"
                   id="file-upload"
                 />
                 <label htmlFor="file-upload">
                   <Button
-                    as="span"
                     className="cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                   >
                     Choose File
@@ -812,60 +785,60 @@ For automatic import, add this action after "Copy to Clipboard":
                 </div>
               </div>
 
-              <ContactSearch 
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                relationshipFilter={relationshipFilter}
-                setRelationshipFilter={setRelationshipFilter}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-              />
+              <div className="flex items-center gap-2 w-full mb-4">
+                <input
+                  type="text"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Search contacts..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
             </Card>
 
             <div className="grid grid-cols-1 gap-4">
-              {previewContacts.map((contact, index) => (
-                <Card key={index} className="p-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+              {previewContacts.map((contact, idx) => {
+                const c = contact as Contact;
+                return (
+                  <Card key={idx} className="p-4 flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                         <span className="text-white font-semibold">
-                          {contact.name.charAt(0)}
+                          {c.name.charAt(0)}
                         </span>
                       </div>
                       <div>
                         <h3 className="font-medium text-gray-900 dark:text-white">
-                          {contact.name}
+                          {c.name}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {contact.title} at {contact.company}
+                          {c.title} at {c.company}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {contact.email}
+                          {c.email}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-center">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {contact.trust_score}
+                          {c.trust_score}
                         </div>
                         <div className="text-xs text-gray-500">Trust Score</div>
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        contact.relationship_strength === 'strong' 
+                        c.relationship_strength === 'strong' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : contact.relationship_strength === 'medium'
+                          : c.relationship_strength === 'medium'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                           : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                       }`}>
-                        {contact.relationship_strength}
+                        {c.relationship_strength}
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
 
             <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
@@ -956,6 +929,83 @@ For automatic import, add this action after "Copy to Clipboard":
               </Card>
             )}
 
+            {/* Show suggested merges if any */}
+            {suggestedMerges.length > 0 && (
+              <Card className="p-6 bg-yellow-50 border border-yellow-200">
+                <h3 className="text-lg font-semibold text-yellow-900 mb-2">Potential Duplicate Contacts</h3>
+                <ul className="space-y-2">
+                  {suggestedMerges.map((merge, idx) => (
+                    (() => {
+                      const m = merge as { ids: string[]; reason: string };
+                      return (
+                        <li key={idx} className="text-yellow-800 text-sm flex items-center justify-between">
+                          <span>
+                            <span className="font-medium">Contacts:</span> {m.ids.join(', ')}<br />
+                            <span className="font-medium">Reason:</span> {m.reason}
+                          </span>
+                          <button
+                            className="ml-4 btn btn-xs btn-primary"
+                            onClick={() => openMergeModal(m.ids)}
+                          >
+                            Merge
+                          </button>
+                        </li>
+                      );
+                    })()
+                  ))}
+                </ul>
+                <p className="text-xs text-yellow-700 mt-2">Review and merge these contacts manually if they are the same person.</p>
+              </Card>
+            )}
+
+            {/* Field-level Merge Modal */}
+            {mergeModalOpen && mergeContactsData.length === 2 && (
+              <Modal isOpen={mergeModalOpen} onClose={() => setMergeModalOpen(false)} title="Merge Contacts">
+                <div className="p-4">
+                  <p className="mb-4">Select which value to keep for each field:</p>
+                  <table className="w-full mb-4 text-xs">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Field</th>
+                        <th className="text-left">Contact 1</th>
+                        <th className="text-left">Contact 2</th>
+                        <th className="text-left">Keep</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.keys((mergeContactsData[0] as Contact)).map(field => (
+                        <tr key={field}>
+                          <td className="font-medium pr-2">{field}</td>
+                          <td className="pr-2">{String((mergeContactsData[0] as Contact)?.[field] ?? '')}</td>
+                          <td className="pr-2">{String((mergeContactsData[1] as Contact)?.[field] ?? '')}</td>
+                          <td>
+                            <select
+                              value={String((mergeContactsData[0] as Contact)[field] ?? '')}
+                              onChange={(e) => handleFieldChange(field, e.target.value)}
+                              className="border rounded px-1 py-0.5"
+                            >
+                              <option value={String((mergeContactsData[0] as Contact)[field] ?? '')}>Contact 1</option>
+                              <option value={String((mergeContactsData[1] as Contact)[field] ?? '')}>Contact 2</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="flex gap-2 justify-end">
+                    <button className="btn btn-outline" onClick={() => setMergeModalOpen(false)}>Cancel</button>
+                    <button className="btn btn-primary" onClick={() => handleMerge()} disabled={mergeLoading}>
+                      {mergeLoading ? 'Merging...' : 'Merge'}
+                    </button>
+                  </div>
+                </div>
+              </Modal>
+            )}
+
+            {mergeSuccess && (
+              <div className="mb-4 p-4 rounded bg-green-50 border border-green-200 text-green-900">{mergeSuccess}</div>
+            )}
+
             {result && importStats && (
               <div className="space-y-6">
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 dark:bg-gray-800/80 dark:border-gray-700/50">
@@ -976,23 +1026,15 @@ For automatic import, add this action after "Copy to Clipboard":
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                     <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-green-600">
-                        {importStats.newContacts}
+                        {importStats.imported}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         New Contacts
                       </div>
                     </div>
-                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {importStats.dataEnriched}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Data Enriched
-                      </div>
-                    </div>
                     <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-purple-600">
-                        {importStats.trustScoresCalculated}
+                        {importStats.imported}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         Trust Scores
@@ -1000,7 +1042,7 @@ For automatic import, add this action after "Copy to Clipboard":
                     </div>
                     <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-yellow-600">
-                        {importStats.duplicatesFound}
+                        {importStats.duplicates}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         Duplicates Skipped
@@ -1008,7 +1050,7 @@ For automatic import, add this action after "Copy to Clipboard":
                     </div>
                     <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-indigo-600">
-                        {importStats.totalProcessed}
+                        {importStats.total}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         Total Processed

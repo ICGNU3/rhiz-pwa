@@ -1,12 +1,31 @@
-import React from 'react';
-import { Mail, Phone, MapPin, MessageSquare, Calendar, Star, ExternalLink, MoreVertical } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Phone, MapPin, MessageSquare, Star, ExternalLink, MoreVertical } from 'lucide-react';
 import Button from '../ui/Button';
 import { getTrustScoreColor, getRelationshipColor, getRelationshipTypeColor, getInitials } from '../../utils/helpers';
 import type { Contact } from '../../types';
 import { getRelationshipHealthScore, getRelationshipHealthLabel } from '../../utils/relationshipHealth';
+import { enrichContactWithWebSearch } from '../../api/contacts';
 
 interface ContactCardProps { 
   contact: Contact; 
+}
+
+// Define a type for news items
+interface NewsItem {
+  url: string;
+  title: string;
+  summary: string;
+}
+
+// Type guard for NewsItem
+function isNewsItem(item: unknown): item is NewsItem {
+  return (
+    !!item &&
+    typeof item === 'object' &&
+    'url' in item && typeof (item as { url: unknown }).url === 'string' &&
+    'title' in item && typeof (item as { title: unknown }).title === 'string' &&
+    'summary' in item && typeof (item as { summary: unknown }).summary === 'string'
+  );
 }
 
 export default function ContactCard({ contact }: ContactCardProps) {
@@ -16,6 +35,33 @@ export default function ContactCard({ contact }: ContactCardProps) {
   if (healthLabel === 'Healthy') healthColor = 'bg-green-100 text-green-700';
   else if (healthLabel === 'At Risk') healthColor = 'bg-yellow-100 text-yellow-800';
   else healthColor = 'bg-red-100 text-red-700';
+
+  const [webInfo, setWebInfo] = useState<Record<string, unknown> | null>(null);
+  const [webLoading, setWebLoading] = useState(false);
+  const [webError, setWebError] = useState<string | null>(null);
+
+  const handleEnrich = async () => {
+    setWebLoading(true);
+    setWebError(null);
+    try {
+      const enriched = await enrichContactWithWebSearch({
+        name: contact.name,
+        email: contact.email,
+        company: contact.company,
+      });
+      setWebInfo(enriched);
+    } catch (err: unknown) {
+      setWebError(err instanceof Error ? err.message : 'Failed to fetch public info');
+    } finally {
+      setWebLoading(false);
+    }
+  };
+
+  // Extract filtered news items for type safety
+  let newsItems: NewsItem[] = [];
+  if (webInfo && Array.isArray(webInfo.recent_news)) {
+    newsItems = (webInfo.recent_news as unknown[]).filter(isNewsItem) as NewsItem[];
+  }
 
   return (
     <div className="p-6 relative overflow-hidden group">
@@ -147,6 +193,44 @@ export default function ContactCard({ contact }: ContactCardProps) {
           <Button variant="outline" size="sm" icon={ExternalLink} className="opacity-0 group-hover:opacity-100 transition-opacity font-light">
             View Profile
           </Button>
+        </div>
+
+        <div className="mt-4">
+          <button
+            className="btn btn-outline text-xs"
+            onClick={handleEnrich}
+            disabled={webLoading}
+          >
+            {webLoading ? 'Fetching Public Info...' : 'Enrich with Web Search'}
+          </button>
+          {webError && <div className="text-red-500 text-xs mt-2">{webError}</div>}
+          {webInfo && (
+            <div className="mt-3 p-3 rounded bg-blue-50 border border-blue-200">
+              <div className="font-semibold text-blue-900 mb-1">Public Info</div>
+              {webInfo.linkedin && (
+                <div className="mb-1"><a href={webInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">LinkedIn</a></div>
+              )}
+              {webInfo.company_website && (
+                <div className="mb-1"><a href={webInfo.company_website} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">Company Website</a></div>
+              )}
+              {webInfo.public_bio && (
+                <div className="mb-1 text-sm text-gray-700">{webInfo.public_bio}</div>
+              )}
+              {newsItems.length > 0 && (
+                <div className="mt-2">
+                  <div className="font-medium text-xs text-blue-800 mb-1">Recent News</div>
+                  <ul className="list-disc pl-5">
+                    {newsItems.map((n, idx) => (
+                      <li key={idx} className="mb-1">
+                        <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{n.title}</a>
+                        <div className="text-xs text-gray-600">{n.summary}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

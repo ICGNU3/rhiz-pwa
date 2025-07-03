@@ -1,7 +1,11 @@
 import React from 'react';
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  // This component can be extended with shape variants (e.g., 'circle') if needed.
+// Skeleton component for loading states
+interface SkeletonProps {
+  className?: string;
+  width?: string | number;
+  height?: string | number;
+  rounded?: boolean;
 }
 
 /**

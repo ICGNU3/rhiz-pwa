@@ -13,7 +13,9 @@ function getInitialBehavior(): UserBehavior {
   if (raw) {
     try {
       return JSON.parse(raw);
-    } catch {}
+    } catch {
+      // If JSON parse fails, fallback to default behavior
+    }
   }
   return {
     searchPreferences: {},

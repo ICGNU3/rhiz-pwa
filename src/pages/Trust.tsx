@@ -64,7 +64,7 @@ const Trust: React.FC = () => {
     }
   });
 
-  const handlePrivacyChange = (key: string, value: any) => {
+  const handlePrivacyChange = (key: string, value: unknown) => {
     const newSettings = { ...privacySettings, [key]: value };
     setPrivacySettings(newSettings);
     updateSettingsMutation.mutate(newSettings);
@@ -75,11 +75,12 @@ const Trust: React.FC = () => {
     // Handle alert actions here
     if (action === 'dismiss') {
       // Remove alert from list
-      queryClient.setQueryData(['trust-metrics'], (oldData: any) => {
-        if (!oldData) return oldData;
+      queryClient.setQueryData(['trust-metrics'], (oldData: unknown) => {
+        if (!oldData || typeof oldData !== 'object' || !('lowTrustAlerts' in oldData)) return oldData;
+        const data = oldData as { lowTrustAlerts: { id: string }[] };
         return {
-          ...oldData,
-          lowTrustAlerts: oldData.lowTrustAlerts.filter((alert: any) => alert.id !== alertId)
+          ...data,
+          lowTrustAlerts: data.lowTrustAlerts.filter((alert) => alert.id !== alertId)
         };
       });
     }

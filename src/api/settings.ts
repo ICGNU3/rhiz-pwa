@@ -319,7 +319,7 @@ export const deleteUserAccount = async () => {
 };
 
 // Real-time subscription for settings changes
-export const subscribeToSettingsChanges = (callback: (payload: any) => void) => {
+export const subscribeToSettingsChanges = (callback: (payload: unknown) => void) => {
   return supabase
     .channel('user_settings_changes')
     .on('postgres_changes', { 

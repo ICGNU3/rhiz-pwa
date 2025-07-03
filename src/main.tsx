@@ -26,8 +26,8 @@ if ('serviceWorker' in navigator) {
 initializePerformanceMonitoring();
 
 // Install prompt handling
-let deferredPrompt: any;
-window.addEventListener('beforeinstallprompt', (e) => {
+let deferredPrompt: Event;
+window.addEventListener('beforeinstallprompt', (e: Event) => {
   e.preventDefault();
   deferredPrompt = e;
 });

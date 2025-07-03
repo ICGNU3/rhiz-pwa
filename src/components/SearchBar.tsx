@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Users, Target, MessageSquare, Building } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, X, Users, Target, /* MessageSquare, */ Building, LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getContacts } from '../api/contacts';
@@ -10,7 +10,7 @@ interface SearchResult {
   type: 'contact' | 'goal' | 'company';
   title: string;
   subtitle: string;
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   url: string;
   score: number;
 }
@@ -38,7 +38,7 @@ const SearchBar: React.FC = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
 
   // Search function
-  const performSearch = (searchQuery: string) => {
+  const performSearch = useCallback((searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
       return;
@@ -117,7 +117,7 @@ const SearchBar: React.FC = () => {
     // Sort by relevance score
     newResults.sort((a, b) => b.score - a.score);
     setResults(newResults.slice(0, 10)); // Limit to 10 results
-  };
+  }, [contacts, goals]);
 
   // Debounced search
   useEffect(() => {
@@ -126,7 +126,7 @@ const SearchBar: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [query, contacts, goals]);
+  }, [query, contacts, goals, performSearch]);
 
   // Handle keyboard navigation
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 
 // Memoize the component to prevent unnecessary re-renders

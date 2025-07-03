@@ -123,7 +123,7 @@ export interface ActivityAnalytics {
     userId: string;
     userName: string;
     timestamp: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
 }
 
@@ -221,7 +221,7 @@ export interface ExportOptions {
     start: Date;
     end: Date;
   };
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   includeMetadata?: boolean;
 }
 
@@ -229,10 +229,10 @@ export interface AnalyticsReport {
   id: string;
   name: string;
   type: 'overview' | 'contacts' | 'goals' | 'activity' | 'network' | 'team' | 'custom';
-  data: any;
+  data: unknown;
   generatedAt: Date;
   period: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 // API response types
@@ -243,7 +243,7 @@ export interface GetAnalyticsRequest {
     start: Date;
     end: Date;
   };
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   teamId?: string;
 }
 
@@ -254,7 +254,7 @@ export interface ExportAnalyticsRequest {
     start: Date;
     end: Date;
   };
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   teamId?: string;
 }
 
@@ -289,7 +289,7 @@ export interface DashboardWidget {
   id: string;
   type: 'metric' | 'chart' | 'table' | 'list';
   title: string;
-  data: any;
+  data: unknown;
   size: 'small' | 'medium' | 'large';
   position: {
     x: number;

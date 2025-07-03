@@ -7,27 +7,20 @@ import {
   Bell, 
   Lock, 
   Globe, 
-  Smartphone, 
   Trash2, 
   Download, 
   Upload, 
   Zap, 
   MessageSquare,
   Shield,
-  Eye,
-  EyeOff,
   Key,
   Settings as SettingsIcon,
   Check,
-  X,
   Mail,
   Calendar,
   Users,
-  Building,
   Moon,
   Sun,
-  Save,
-  RefreshCw
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/ui/Button';
@@ -35,13 +28,13 @@ import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
 import { getUserSettings, updateUserSettings, getUserStats, UserSettings } from '../api/settings';
 import { supabase } from '../api/client';
+import Modal from '../components/Modal';
 
 const Settings: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
-  const [showSensitiveData, setShowSensitiveData] = useState(false);
   
   // Fetch user settings
   const { data: userSettings, isLoading: settingsLoading, error: settingsError } = useQuery({
@@ -126,7 +119,7 @@ const Settings: React.FC = () => {
     }
   });
 
-  const handleSettingChange = (section: keyof UserSettings, key: string, value: any) => {
+  const handleSettingChange = (section: keyof UserSettings, key: string, value: unknown) => {
     if (!settings) return;
     
     const newSettings = {
@@ -134,7 +127,11 @@ const Settings: React.FC = () => {
       [section]: { ...settings[section], [key]: value }
     };
     setSettings(newSettings);
-    updateSettingsMutation.mutate(newSettings);
+    try {
+      updateSettingsMutation.mutate(newSettings);
+    } catch (err) {
+      console.error('Failed to update settings');
+    }
   };
 
   const handleProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -152,7 +149,11 @@ const Settings: React.FC = () => {
     
     const newSettings = { ...settings, profile: profileData };
     setSettings(newSettings);
-    updateSettingsMutation.mutate(newSettings);
+    try {
+      updateSettingsMutation.mutate(newSettings);
+    } catch (err) {
+      console.error('Failed to update settings');
+    }
     
     // Also update the profile in the profiles table
     supabase
@@ -227,12 +228,67 @@ const Settings: React.FC = () => {
       icon: Users, 
       description: 'Import meeting participants and interactions',
       status: 'coming-soon'
-    }
+    },
+    { 
+      key: 'telegram', 
+      name: 'Telegram', 
+      icon: MessageSquare,
+      description: 'Sync contacts and group intelligence from Telegram',
+      status: 'available'
+    },
   ];
 
   const [emailConnected, setEmailConnected] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [connectMsg, setConnectMsg] = useState('');
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [telegramCode, setTelegramCode] = useState<string | null>(null);
+  const [telegramCodeLoading, setTelegramCodeLoading] = useState(false);
+  const [telegramCodeError, setTelegramCodeError] = useState<string | null>(null);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramPolling, setTelegramPolling] = useState(false);
+
+  useEffect(() => {
+    if (showTelegramModal) {
+      setTelegramCode(null);
+      setTelegramCodeError(null);
+      setTelegramCodeLoading(true);
+      fetch('/api/telegram/generate-link-code', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          setTelegramCode(data.code);
+          setTelegramCodeLoading(false);
+        })
+        .catch(err => {
+          setTelegramCodeError('Failed to generate code. Please try again.');
+          setTelegramCodeLoading(false);
+        });
+    }
+  }, [showTelegramModal]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (showTelegramModal && telegramCode) {
+      setTelegramLinked(false);
+      setTelegramPolling(true);
+      interval = setInterval(() => {
+        fetch('/api/telegram/check-link-status', { method: 'GET' })
+          .then(res => res.json())
+          .then(data => {
+            if (data.linked) {
+              setTelegramLinked(true);
+              setTelegramPolling(false);
+              if (interval) clearInterval(interval);
+            }
+          })
+          .catch(() => {});
+      }, 3000);
+    }
+    if (!showTelegramModal && interval) {
+      clearInterval(interval);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [showTelegramModal, telegramCode]);
 
   function handleDemoConnect(type: 'gmail' | 'outlook') {
     setConnectMsg(`Connected to ${type === 'gmail' ? 'Gmail' : 'Outlook'}! Demo contacts updated.`);
@@ -598,8 +654,8 @@ const Settings: React.FC = () => {
                             size="sm"
                             disabled={provider.status === 'coming-soon'}
                             onClick={() => {
-                              if (provider.key === 'x' && !isConnected) {
-                                window.location.href = '/api/integrations/x/start';
+                              if (provider.key === 'telegram' && !isConnected) {
+                                setShowTelegramModal(true);
                               } else {
                                 handleSettingChange('integrations', provider.key, !isConnected);
                               }
@@ -1008,6 +1064,43 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+      <Modal isOpen={showTelegramModal} onClose={() => setShowTelegramModal(false)} title="Connect Telegram">
+        <div className="p-6 text-center">
+          <h3 className="text-xl font-semibold mb-2">Connect Your Telegram</h3>
+          {telegramLinked ? (
+            <div className="mb-4 text-green-700 font-semibold">✅ Your Telegram is now linked to your Rhiz account!</div>
+          ) : telegramCodeLoading ? (
+            <div className="mb-4 text-gray-600">Generating your code...</div>
+          ) : telegramCodeError ? (
+            <div className="mb-4 text-red-600">{telegramCodeError}</div>
+          ) : telegramCode ? (
+            <>
+              <ol className="text-left mb-4 list-decimal list-inside space-y-2">
+                <li>Add <b>@RhizBot</b> to your Telegram account or group.</li>
+                <li>Send <b>/start {telegramCode}</b> to the bot to link your account.</li>
+                <li>Return here for confirmation.</li>
+              </ol>
+              <p className="text-sm text-gray-600 mb-4">Rhiz only syncs relationship metadata (who, when, group, frequency)—never message content. You control your privacy.</p>
+              <Button
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+                onClick={() => window.open('https://t.me/RhizBot', '_blank')}
+              >
+                Open Telegram
+              </Button>
+              {telegramPolling && (
+                <div className="mt-3 text-xs text-gray-500 animate-pulse">Waiting for Telegram link...</div>
+              )}
+            </>
+          ) : null}
+          <Button
+            variant="outline"
+            className="w-full mt-3"
+            onClick={() => setShowTelegramModal(false)}
+          >
+            Close
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -9,14 +9,14 @@ export interface ValidationRule {
   email?: boolean;
   url?: boolean;
   phone?: boolean;
-  custom?: (value: any) => boolean;
+  custom?: (value: unknown) => boolean;
   message?: string;
 }
 
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
-  sanitizedValue?: any;
+  sanitizedValue?: unknown;
 }
 
 export class ValidationError extends Error {
@@ -44,7 +44,7 @@ export const sanitizeEmail = (email: string): string => {
 };
 
 export const sanitizePhone = (phone: string): string => {
-  return sanitizeString(phone).replace(/[^\d+\-\(\)\s]/g, '');
+  return sanitizeString(phone).replace(/[^\d+\-()\s]/g, '');
 };
 
 export const sanitizeUrl = (url: string): string => {
@@ -56,7 +56,7 @@ export const sanitizeUrl = (url: string): string => {
 };
 
 // Validation functions
-export const validateRequired = (value: any): boolean => {
+export const validateRequired = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
@@ -69,8 +69,8 @@ export const validateEmail = (email: string): boolean => {
 };
 
 export const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
+  const cleanPhone = phone.replace(/[\s\-()]/g, '');
   return phoneRegex.test(cleanPhone);
 };
 
@@ -90,7 +90,7 @@ export const validateLength = (value: string, min?: number, max?: number): boole
 };
 
 // Main validation function
-export const validate = (value: any, rules: ValidationRule): ValidationResult => {
+export const validate = (value: unknown, rules: ValidationRule): ValidationResult => {
   const errors: string[] = [];
   let sanitizedValue = value;
 
@@ -224,7 +224,7 @@ export const validationRules = {
 };
 
 // Form validation helper
-export const validateForm = (data: Record<string, any>, rules: Record<string, ValidationRule>) => {
+export const validateForm = (data: Record<string, unknown>, rules: Record<string, ValidationRule>) => {
   const results: Record<string, ValidationResult> = {};
   let isValid = true;
 

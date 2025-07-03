@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle, X, Loader2 } from 'lucide-react';
 import { supabase } from '../api/client';
 import Button from '../components/ui/Button';
@@ -11,7 +11,6 @@ const ApplyPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   
   const isPending = searchParams.get('pending') === 'true';
 
@@ -84,9 +83,9 @@ const ApplyPage: React.FC = () => {
       await sendConfirmationEmail(formData.name, formData.email);
 
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Application submission error:', err);
-      setError(err.message || 'Failed to submit application. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to submit application. Please try again.');
     } finally {
       setLoading(false);
     }

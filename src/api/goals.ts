@@ -41,7 +41,7 @@ export const getGoals = async (): Promise<Goal[]> => {
       ];
     }
 
-    let data: any[] = [];
+    let data: Goal[] = [];
     let error = null;
 
     try {
@@ -210,7 +210,7 @@ export const deleteGoal = async (goalId: string): Promise<void> => {
 };
 
 // Real-time subscription with error handling
-export const subscribeToGoals = (callback: (payload: any) => void) => {
+export const subscribeToGoals = (callback: (payload: unknown) => void) => {
   try {
     return supabase
       .channel('goals')

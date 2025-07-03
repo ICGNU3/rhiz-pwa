@@ -269,12 +269,13 @@ export const declineInvitation = async (token: string): Promise<void> => {
 };
 
 // Team Activities
-export const getTeamActivities = async (teamId: string, limit = 50): Promise<TeamActivity[]> => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getTeamActivities = async (_teamId: string, _limit = 50): Promise<TeamActivity[]> => {
   // Return demo data for development
   return [
     {
       id: 'activity-1',
-      teamId,
+      teamId: _teamId,
       userId: 'user-1',
       type: 'contact_added',
       resourceId: 'contact-1',
@@ -285,7 +286,7 @@ export const getTeamActivities = async (teamId: string, limit = 50): Promise<Tea
     },
     {
       id: 'activity-2',
-      teamId,
+      teamId: _teamId,
       userId: 'user-2',
       type: 'goal_completed',
       resourceId: 'goal-1',
@@ -296,7 +297,7 @@ export const getTeamActivities = async (teamId: string, limit = 50): Promise<Tea
     },
     {
       id: 'activity-3',
-      teamId,
+      teamId: _teamId,
       userId: 'user-3',
       type: 'member_joined',
       resourceId: 'member-3',
@@ -366,13 +367,14 @@ export const shareResource = async (teamId: string, data: ShareResourceRequest):
   console.log('Sharing resource:', data);
 };
 
-export const getSharedResources = async (teamId: string, resourceType?: 'contact' | 'goal'): Promise<any[]> => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getSharedResources = async (_teamId: string, _resourceType?: 'contact' | 'goal'): Promise<unknown[]> => {
   // Return demo data for development
   return [];
 };
 
 // Team Analytics
-export const getTeamAnalytics = async (teamId: string, period: 'week' | 'month' | 'quarter' = 'month'): Promise<any> => {
+export const getTeamAnalytics = async (teamId: string, period: 'week' | 'month' | 'quarter' = 'month'): Promise<unknown> => {
   // Return demo analytics data
   return {
     period,

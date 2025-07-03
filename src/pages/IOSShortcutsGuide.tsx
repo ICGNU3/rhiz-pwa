@@ -9,7 +9,6 @@ import {
   Download, 
   Copy, 
   CheckCircle, 
-  ArrowRight,
   Users,
   FileText,
   Globe,

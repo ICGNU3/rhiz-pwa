@@ -23,7 +23,7 @@ export function measureRenderTime<T>(componentName: string, callback: () => T): 
  * Reports Web Vitals metrics
  * @param metric The metric to report
  */
-export function reportWebVitals(metric: any): void {
+export function reportWebVitals(metric: unknown): void {
   if (process.env.NODE_ENV === 'production') {
     // In a real app, you would send this to your analytics service
     console.log(metric);
@@ -36,7 +36,7 @@ export function reportWebVitals(metric: any): void {
  * @param wait Wait time in milliseconds
  * @returns Debounced function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -53,7 +53,7 @@ export function debounce<T extends (...args: any[]) => any>(
  * @param limit Limit time in milliseconds
  * @returns Throttled function
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
@@ -72,7 +72,7 @@ export function throttle<T extends (...args: any[]) => any>(
  * @param func Function to memoize
  * @returns Memoized function
  */
-export function memoize<T extends (...args: any[]) => any>(
+export function memoize<T extends (...args: unknown[]) => unknown>(
   func: T
 ): (...args: Parameters<T>) => ReturnType<T> {
   const cache = new Map();
@@ -134,11 +134,9 @@ export function preloadResources(resources: string[]): void {
 /**
  * Optimizes images by resizing and converting to WebP
  * @param src Original image source
- * @param width Desired width
- * @param height Desired height
  * @returns Optimized image URL
  */
-export function optimizeImage(src: string, width?: number, height?: number): string {
+export function optimizeImage(src: string): string {
   // In a real app, you would use an image optimization service
   // For now, we'll just return the original image
   if (!src) return src;
@@ -241,11 +239,11 @@ export interface PerformanceMetric {
   name: string;
   duration: number;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 class Cache {
-  private storage = new Map<string, CacheEntry<any>>();
+  private storage = new Map<string, CacheEntry<unknown>>();
   private maxSize: number;
 
   constructor(maxSize: number = 100) {
@@ -279,7 +277,7 @@ class Cache {
       return null;
     }
 
-    return entry.data;
+    return entry.data as T;
   }
 
   has(key: string): boolean {
@@ -333,7 +331,7 @@ export const cachedFetch = async <T>(
 
 
 // Component lazy loading with preloading
-export const lazyLoadComponent = <T extends React.ComponentType<any>>(
+export const lazyLoadComponent = <T extends React.ComponentType<unknown>>(
   importFn: () => Promise<{ default: T }>,
   preload = false
 ) => {
@@ -360,7 +358,7 @@ class PerformanceMonitor {
     };
   }
 
-  recordMetric(name: string, duration: number, metadata?: Record<string, any>): void {
+  recordMetric(name: string, duration: number, metadata?: Record<string, unknown>): void {
     const metric: PerformanceMetric = {
       name,
       duration,
@@ -423,7 +421,7 @@ class PerformanceMonitor {
   startMemoryMonitoring(): void {
     if ('memory' in performance) {
       setInterval(() => {
-        const memory = (performance as any).memory;
+        const memory = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
         this.recordMetric('memory-usage', memory.usedJSHeapSize, {
           total: memory.totalJSHeapSize,
           limit: memory.jsHeapSizeLimit
@@ -438,11 +436,11 @@ class PerformanceMonitor {
       const observer = new PerformanceObserver((list) => {
         list.getEntries().forEach((entry) => {
           if (entry.entryType === 'resource') {
-            const resourceEntry = entry as PerformanceResourceTiming;
+            const resourceEntry = entry as PerformanceResourceTiming & { transferSize?: number };
             this.recordMetric('network-request', resourceEntry.duration, {
               name: resourceEntry.name,
               initiatorType: resourceEntry.initiatorType,
-              transferSize: (resourceEntry as any).transferSize || 0
+              transferSize: resourceEntry.transferSize || 0
             });
           }
         });
@@ -486,7 +484,8 @@ export const getBundleSize = (): number => {
     );
     
     return jsEntries.reduce((total, entry) => {
-      return total + ((entry as any).transferSize || 0);
+      const resourceEntry = entry as PerformanceResourceTiming & { transferSize?: number };
+      return total + (resourceEntry.transferSize || 0);
     }, 0);
   }
   return 0;
@@ -549,16 +548,32 @@ export const usePerformanceTimer = (name: string) => {
   return startTimer;
 };
 
-export const useDebouncedCallback = <T extends (...args: any[]) => any>(
+export const useDebouncedCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ) => {
-  return React.useCallback(debounce(callback, delay), [callback, delay]);
+  return React.useCallback(
+    (...args: Parameters<T>) => {
+      const timeoutId = setTimeout(() => callback(...args), delay);
+      return () => clearTimeout(timeoutId);
+    },
+    [callback, delay]
+  );
 };
 
-export const useThrottledCallback = <T extends (...args: any[]) => any>(
+export const useThrottledCallback = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ) => {
-  return React.useCallback(throttle(callback, delay), [callback, delay]);
+  return React.useCallback(
+    (...args: Parameters<T>) => {
+      let lastCall = 0;
+      const now = Date.now();
+      if (now - lastCall >= delay) {
+        lastCall = now;
+        callback(...args);
+      }
+    },
+    [callback, delay]
+  );
 };

@@ -1,5 +1,5 @@
 // Utility helper functions
-import { TRUST_SCORE_RANGES, RELATIONSHIP_TYPES } from './constants';
+import { TRUST_SCORE_RANGES } from './constants';
 import type { Contact, Goal } from '../types';
 import { getRelationshipHealthScore } from './relationshipHealth';
 
@@ -141,7 +141,7 @@ export const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {

@@ -5,7 +5,6 @@ import Card from '../components/Card';
 import Button from '../components/ui/Button';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
-import ContactSearch from '../components/contacts/ContactSearch';
 import NetworkGraph from '../components/network/NetworkGraph';
 import { getNetworkData } from '../api/network';
 import { measureTime } from '../utils/performance';
@@ -24,8 +23,6 @@ const Network: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [relationshipFilter, setRelationshipFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [minStrength, setMinStrength] = useState<number>(0);
   const [networkViewMode, setNetworkViewMode] = useState<'force' | 'cluster' | 'hierarchy'>('force');
@@ -80,7 +77,6 @@ const Network: React.FC = () => {
     if (networkData?.nodes && networkData.nodes.length > 0) {
       // Precompute positions in a web worker or on next idle callback
       if ('requestIdleCallback' in window) {
-        // @ts-ignore
         window.requestIdleCallback(() => {
           measureTime('Precompute Node Positions', () => {
             const centerX = window.innerWidth / 2;
@@ -339,7 +335,7 @@ const Network: React.FC = () => {
                     {['force', 'cluster', 'hierarchy'].map((mode) => (
                       <button
                         key={mode}
-                        onClick={() => setNetworkViewMode(mode as any)}
+                        onClick={() => setNetworkViewMode(mode as 'force' | 'cluster' | 'hierarchy')}
                         className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                           networkViewMode === mode
                             ? 'bg-indigo-600 text-white shadow-sm'

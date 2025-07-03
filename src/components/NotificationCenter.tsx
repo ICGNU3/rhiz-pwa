@@ -7,9 +7,7 @@ import {
   Info, 
   Users, 
   Target, 
-  MessageSquare,
-  Clock,
-  Settings
+  MessageSquare
 } from 'lucide-react';
 import Button from './ui/Button';
 
@@ -25,7 +23,7 @@ export interface Notification {
     onClick: () => void;
   };
   category?: 'contact' | 'goal' | 'ai' | 'system' | 'network';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface NotificationCenterProps {
@@ -176,7 +174,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             ].map(({ key, label }) => (
               <button
                 key={key}
-                onClick={() => setFilter(key as any)}
+                onClick={() => setFilter(key as typeof filter)}
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   filter === key
                     ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'

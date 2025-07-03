@@ -15,25 +15,25 @@ import type {
 } from '../types/analytics';
 
 // Analytics Overview
-export const getAnalyticsOverview = async (request: GetAnalyticsRequest): Promise<AnalyticsOverview> => {
+export const getAnalyticsOverview = async (): Promise<AnalyticsOverview> => {
   // Return demo data for development
   return {
-    period: request.period,
+    period: 'month',
     dateRange: {
       start: new Date('2024-01-01'),
       end: new Date('2024-01-31')
     },
     summary: {
-      totalContacts: 156,
-      totalGoals: 24,
-      activeGoals: 18,
-      completedGoals: 6,
-      totalActivities: 89,
+      totalContacts: 247,
+      totalGoals: 12,
+      activeGoals: 8,
+      completedGoals: 4,
+      totalActivities: 156,
       teamCollaboration: 85
     },
     trends: {
-      contactsGrowth: 12,
-      goalsProgress: 75,
+      contactsGrowth: 15,
+      goalsProgress: 78,
       activityIncrease: 8,
       engagementRate: 92
     }
@@ -41,12 +41,12 @@ export const getAnalyticsOverview = async (request: GetAnalyticsRequest): Promis
 };
 
 // Contact Analytics
-export const getContactAnalytics = async (request: GetAnalyticsRequest): Promise<ContactAnalytics> => {
+export const getContactAnalytics = async (): Promise<ContactAnalytics> => {
   return {
-    total: 156,
-    added: 12,
-    updated: 8,
-    shared: 5,
+    total: 247,
+    added: 23,
+    updated: 15,
+    shared: 8,
     bySource: [
       { source: 'Manual Entry', count: 45, percentage: 29 },
       { source: 'Import', count: 38, percentage: 24 },
@@ -55,29 +55,28 @@ export const getContactAnalytics = async (request: GetAnalyticsRequest): Promise
       { source: 'Other', count: 16, percentage: 10 }
     ],
     byCompany: [
-      { company: 'TechCorp', count: 23, percentage: 15 },
-      { company: 'InnovateInc', count: 18, percentage: 12 },
-      { company: 'StartupXYZ', count: 15, percentage: 10 },
-      { company: 'Enterprise Ltd', count: 12, percentage: 8 },
-      { company: 'Others', count: 88, percentage: 55 }
+      { company: 'Google', count: 12, percentage: 15 },
+      { company: 'Microsoft', count: 8, percentage: 12 },
+      { company: 'Apple', count: 6, percentage: 10 },
+      { company: 'Others', count: 221, percentage: 63 }
     ],
     byTrustLevel: [
       { level: 'high', count: 45, percentage: 29 },
-      { level: 'medium', count: 78, percentage: 50 },
-      { level: 'low', count: 33, percentage: 21 }
+      { level: 'medium', count: 89, percentage: 50 },
+      { level: 'low', count: 113, percentage: 21 }
     ],
     growth: [
-      { date: '2024-01-01', count: 144 },
-      { date: '2024-01-08', count: 148 },
-      { date: '2024-01-15', count: 152 },
-      { date: '2024-01-22', count: 154 },
-      { date: '2024-01-29', count: 156 }
+      { date: '2024-01-01', count: 224 },
+      { date: '2024-01-08', count: 228 },
+      { date: '2024-01-15', count: 232 },
+      { date: '2024-01-22', count: 234 },
+      { date: '2024-01-29', count: 247 }
     ],
     topContacts: [
       {
         id: 'contact-1',
         name: 'John Smith',
-        company: 'TechCorp',
+        company: 'Google',
         trustScore: 95,
         lastContact: new Date('2024-01-20'),
         interactions: 12
@@ -85,7 +84,7 @@ export const getContactAnalytics = async (request: GetAnalyticsRequest): Promise
       {
         id: 'contact-2',
         name: 'Sarah Johnson',
-        company: 'InnovateInc',
+        company: 'Microsoft',
         trustScore: 88,
         lastContact: new Date('2024-01-19'),
         interactions: 9
@@ -93,7 +92,7 @@ export const getContactAnalytics = async (request: GetAnalyticsRequest): Promise
       {
         id: 'contact-3',
         name: 'Mike Chen',
-        company: 'StartupXYZ',
+        company: 'Apple',
         trustScore: 82,
         lastContact: new Date('2024-01-18'),
         interactions: 7
@@ -103,43 +102,42 @@ export const getContactAnalytics = async (request: GetAnalyticsRequest): Promise
 };
 
 // Goal Analytics
-export const getGoalAnalytics = async (request: GetAnalyticsRequest): Promise<GoalAnalytics> => {
+export const getGoalAnalytics = async (): Promise<GoalAnalytics> => {
   return {
-    total: 24,
-    active: 18,
-    completed: 6,
-    overdue: 2,
-    progress: 75,
+    total: 12,
+    active: 8,
+    completed: 4,
+    overdue: 1,
+    progress: 78,
     byCategory: [
-      { category: 'Sales', count: 8, completed: 3, progress: 62 },
-      { category: 'Networking', count: 6, completed: 2, progress: 67 },
-      { category: 'Partnership', count: 5, completed: 1, progress: 40 },
-      { category: 'Personal', count: 3, completed: 0, progress: 0 },
-      { category: 'Other', count: 2, completed: 0, progress: 0 }
+      { category: 'Fundraising', count: 4, completed: 2, progress: 75 },
+      { category: 'Partnerships', count: 3, completed: 2, progress: 67 },
+      { category: 'Hiring', count: 2, completed: 1, progress: 50 },
+      { category: 'Product Launch', count: 3, completed: 3, progress: 100 }
     ],
     byPriority: [
-      { priority: 'high', count: 8, completed: 2, progress: 50 },
-      { priority: 'medium', count: 12, completed: 3, progress: 75 },
-      { priority: 'low', count: 4, completed: 1, progress: 25 }
+      { priority: 'high', count: 4, completed: 2, progress: 75 },
+      { priority: 'medium', count: 6, completed: 2, progress: 67 },
+      { priority: 'low', count: 2, completed: 0, progress: 0 }
     ],
     byStatus: [
-      { status: 'not_started', count: 2, percentage: 8 },
-      { status: 'in_progress', count: 16, percentage: 67 },
-      { status: 'completed', count: 6, percentage: 25 },
+      { status: 'not_started', count: 1, percentage: 8 },
+      { status: 'in_progress', count: 7, percentage: 58 },
+      { status: 'completed', count: 4, percentage: 33 },
       { status: 'overdue', count: 0, percentage: 0 }
     ],
     completionRate: [
-      { date: '2024-01-01', completed: 0, total: 24, rate: 0 },
-      { date: '2024-01-08', completed: 1, total: 24, rate: 4 },
-      { date: '2024-01-15', completed: 3, total: 24, rate: 12 },
-      { date: '2024-01-22', completed: 5, total: 24, rate: 21 },
-      { date: '2024-01-29', completed: 6, total: 24, rate: 25 }
+      { date: '2024-01-01', completed: 0, total: 12, rate: 0 },
+      { date: '2024-01-08', completed: 1, total: 12, rate: 8 },
+      { date: '2024-01-15', completed: 2, total: 12, rate: 17 },
+      { date: '2024-01-22', completed: 3, total: 12, rate: 25 },
+      { date: '2024-01-29', completed: 4, total: 12, rate: 33 }
     ],
     topGoals: [
       {
         id: 'goal-1',
-        title: 'Increase Q1 sales by 20%',
-        category: 'Sales',
+        title: 'Raise Series A funding',
+        category: 'Fundraising',
         progress: 85,
         dueDate: new Date('2024-03-31'),
         priority: 'high'
@@ -147,15 +145,15 @@ export const getGoalAnalytics = async (request: GetAnalyticsRequest): Promise<Go
       {
         id: 'goal-2',
         title: 'Build 10 new partnerships',
-        category: 'Partnership',
+        category: 'Partnerships',
         progress: 70,
         dueDate: new Date('2024-06-30'),
         priority: 'medium'
       },
       {
         id: 'goal-3',
-        title: 'Attend 5 industry events',
-        category: 'Networking',
+        title: 'Hire 5 senior engineers',
+        category: 'Hiring',
         progress: 60,
         dueDate: new Date('2024-12-31'),
         priority: 'medium'
@@ -165,18 +163,14 @@ export const getGoalAnalytics = async (request: GetAnalyticsRequest): Promise<Go
 };
 
 // Activity Analytics
-export const getActivityAnalytics = async (request: GetAnalyticsRequest): Promise<ActivityAnalytics> => {
+export const getActivityAnalytics = async (): Promise<ActivityAnalytics> => {
   return {
-    total: 89,
+    total: 156,
     byType: [
-      { type: 'Contact Added', count: 12, percentage: 13 },
-      { type: 'Contact Updated', count: 8, percentage: 9 },
-      { type: 'Goal Created', count: 5, percentage: 6 },
-      { type: 'Goal Completed', count: 3, percentage: 3 },
-      { type: 'Note Added', count: 15, percentage: 17 },
-      { type: 'Meeting Scheduled', count: 10, percentage: 11 },
-      { type: 'Email Sent', count: 20, percentage: 22 },
-      { type: 'Call Logged', count: 16, percentage: 18 }
+      { type: 'meeting', count: 45, percentage: 29 },
+      { type: 'email', count: 67, percentage: 43 },
+      { type: 'call', count: 23, percentage: 15 },
+      { type: 'coffee', count: 21, percentage: 13 }
     ],
     byUser: [
       { userId: 'user-1', userName: 'Sarah Johnson', count: 25, percentage: 28 },
@@ -208,20 +202,20 @@ export const getActivityAnalytics = async (request: GetAnalyticsRequest): Promis
       {
         id: 'activity-1',
         type: 'Contact Added',
-        description: 'Added John Smith from TechCorp',
+        description: 'Added John Smith from Google',
         userId: 'user-1',
         userName: 'Sarah Johnson',
         timestamp: new Date('2024-01-20T10:30:00Z'),
-        metadata: { contactName: 'John Smith', company: 'TechCorp' }
+        metadata: { contactName: 'John Smith', company: 'Google' }
       },
       {
         id: 'activity-2',
         type: 'Goal Completed',
-        description: 'Completed goal "Increase Q1 sales by 20%"',
+        description: 'Completed goal "Raise Series A funding"',
         userId: 'user-2',
         userName: 'Mike Chen',
         timestamp: new Date('2024-01-20T09:15:00Z'),
-        metadata: { goalName: 'Increase Q1 sales by 20%' }
+        metadata: { goalName: 'Raise Series A funding' }
       },
       {
         id: 'activity-3',
@@ -237,22 +231,21 @@ export const getActivityAnalytics = async (request: GetAnalyticsRequest): Promis
 };
 
 // Network Analytics
-export const getNetworkAnalytics = async (request: GetAnalyticsRequest): Promise<NetworkAnalytics> => {
+export const getNetworkAnalytics = async (): Promise<NetworkAnalytics> => {
   return {
-    totalConnections: 156,
-    averageTrustScore: 78,
-    networkDensity: 0.65,
+    totalConnections: 247,
+    averageTrustScore: 87,
+    networkDensity: 75,
     byTrustLevel: [
-      { level: 'high', count: 45, percentage: 29 },
-      { level: 'medium', count: 78, percentage: 50 },
-      { level: 'low', count: 33, percentage: 21 }
+      { level: 'high', count: 67, percentage: 27 },
+      { level: 'medium', count: 89, percentage: 36 },
+      { level: 'low', count: 91, percentage: 37 }
     ],
     byCompany: [
-      { company: 'TechCorp', connections: 23, averageTrust: 82 },
-      { company: 'InnovateInc', connections: 18, averageTrust: 75 },
-      { company: 'StartupXYZ', connections: 15, averageTrust: 68 },
-      { company: 'Enterprise Ltd', connections: 12, averageTrust: 85 },
-      { company: 'Others', connections: 88, averageTrust: 76 }
+      { company: 'Google', connections: 12, averageTrust: 82 },
+      { company: 'Microsoft', connections: 8, averageTrust: 75 },
+      { company: 'Apple', connections: 6, averageTrust: 68 },
+      { company: 'Others', connections: 221, averageTrust: 76 }
     ],
     topConnectors: [
       {
@@ -275,15 +268,15 @@ export const getNetworkAnalytics = async (request: GetAnalyticsRequest): Promise
       }
     ],
     relationshipStrength: [
-      { strength: 'strong', count: 52, percentage: 33 },
-      { strength: 'moderate', count: 78, percentage: 50 },
-      { strength: 'weak', count: 26, percentage: 17 }
+      { strength: 'strong', count: 67, percentage: 27 },
+      { strength: 'moderate', count: 89, percentage: 36 },
+      { strength: 'weak', count: 91, percentage: 37 }
     ]
   };
 };
 
 // Team Analytics
-export const getTeamAnalytics = async (request: GetAnalyticsRequest): Promise<TeamAnalytics> => {
+export const getTeamAnalytics = async (): Promise<TeamAnalytics> => {
   return {
     memberCount: 8,
     activeMembers: 7,
@@ -320,8 +313,8 @@ export const getTeamAnalytics = async (request: GetAnalyticsRequest): Promise<Te
     ],
     teamPerformance: [
       { metric: 'Contact Growth', value: 12, target: 10, percentage: 120 },
-      { metric: 'Goal Completion', value: 6, target: 8, percentage: 75 },
-      { metric: 'Team Activity', value: 89, target: 100, percentage: 89 },
+      { metric: 'Goal Completion', value: 4, target: 8, percentage: 50 },
+      { metric: 'Team Activity', value: 156, target: 100, percentage: 156 },
       { metric: 'Collaboration', value: 85, target: 80, percentage: 106 }
     ]
   };
@@ -394,22 +387,22 @@ export const generateReport = async (request: GetAnalyticsRequest): Promise<Anal
   // Populate data based on type
   switch (request.type) {
     case 'overview':
-      report.data = await getAnalyticsOverview(request);
+      report.data = await getAnalyticsOverview();
       break;
     case 'contacts':
-      report.data = await getContactAnalytics(request);
+      report.data = await getContactAnalytics();
       break;
     case 'goals':
-      report.data = await getGoalAnalytics(request);
+      report.data = await getGoalAnalytics();
       break;
     case 'activity':
-      report.data = await getActivityAnalytics(request);
+      report.data = await getActivityAnalytics();
       break;
     case 'network':
-      report.data = await getNetworkAnalytics(request);
+      report.data = await getNetworkAnalytics();
       break;
     case 'team':
-      report.data = await getTeamAnalytics(request);
+      report.data = await getTeamAnalytics();
       break;
   }
 
@@ -417,7 +410,8 @@ export const generateReport = async (request: GetAnalyticsRequest): Promise<Anal
 };
 
 // Chart Data Helpers
-export const getChartData = (data: any, type: 'bar' | 'line' | 'pie' | 'doughnut'): ChartData => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getChartData = (_data: unknown, _type: 'bar' | 'line' | 'pie' | 'doughnut'): ChartData => {
   // Convert analytics data to chart format
   return {
     labels: [],
@@ -425,7 +419,8 @@ export const getChartData = (data: any, type: 'bar' | 'line' | 'pie' | 'doughnut
   };
 };
 
-export const getTimeSeriesData = (data: any): TimeSeriesData => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getTimeSeriesData = (_data: unknown): TimeSeriesData => {
   // Convert time-based data to time series format
   return {
     labels: [],

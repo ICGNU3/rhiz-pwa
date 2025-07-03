@@ -1,5 +1,5 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.42.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,92 +8,98 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST' && req.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser()
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+    // Auth: get user from JWT
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing auth header' }), { status: 401 })
     }
+    const token = authHeader.replace('Bearer ', '')
 
-    // Fetch all user contacts for network analysis
-    const { data: contacts } = await supabaseClient
+    // Supabase client (user context)
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing Supabase env vars' }), { status: 500 })
+    }
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { global: { headers: { Authorization: `Bearer ${token}` } } })
+
+    // 1. Fetch user's contacts and engagement data
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!user || userError) {
+      return new Response(JSON.stringify({ error: 'User not found', details: userError?.message }), { status: 401 })
+    }
+    const { data: contacts, error: contactsError } = await supabase
       .from('contacts')
       .select('*')
       .eq('user_id', user.id)
-
-    if (!contacts) {
-      return new Response(
-        JSON.stringify({ insights: [], networkScore: 0 }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+    if (contactsError) {
+      return new Response(JSON.stringify({ error: 'Failed to fetch contacts', details: contactsError.message }), { status: 500 })
     }
 
-    // Generate network insights
-    const insights = generateNetworkInsights(contacts)
+    // 2. Analyze the contact graph and engagement
+    // Mock AI logic for now
+    const now = new Date()
+    const atRisk = contacts.filter(c => c.engagement_trend === 'down' || (c.last_contact && ((now.getTime() - new Date(c.last_contact).getTime()) / (1000 * 60 * 60 * 24) > 60)))
+    const opportunities = contacts.filter(c => c.engagement_trend === 'up' && c.trust_score > 80)
+    const clusters: Record<string, number> = {}
+    contacts.forEach(c => {
+      if (c.relationship_type) {
+        clusters[c.relationship_type] = (clusters[c.relationship_type] || 0) + 1
+      }
+    })
+    const clusterGaps = Object.entries(clusters).filter(([type, count]) => count < 2)
 
-    // Store insights in trust_insights table
-    for (const insight of insights.contactInsights) {
-      await supabaseClient
-        .from('trust_insights')
-        .upsert({
-          user_id: user.id,
-          contact_id: insight.contactId,
-          trust_score: insight.trustScore,
-          factors: insight.factors,
-          calculated_at: new Date().toISOString()
-        })
+    // 3. Generate suggested actions
+    const suggestedActions = []
+    if (atRisk.length > 0) {
+      suggestedActions.push(`Reconnect with ${atRisk[0].name}—relationship may be at risk.`)
+    }
+    if (opportunities.length > 0) {
+      suggestedActions.push(`Follow up with ${opportunities[0].name}—engagement is trending up.`)
+    }
+    if (clusterGaps.length > 0) {
+      suggestedActions.push(`Expand your network in: ${clusterGaps.map(([type]) => type).join(', ')}`)
+    }
+    if (contacts.length > 0) {
+      suggestedActions.push(`You have ${contacts.length} contacts. Consider setting a new networking goal.`)
     }
 
-    return new Response(
-      JSON.stringify({
-        networkScore: insights.networkScore,
-        insights: insights.insights,
-        recommendations: insights.recommendations,
-        riskAlerts: insights.riskAlerts
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-
-  } catch (error) {
-    console.error('Error in network-insights function:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    // 4. Return insights
+    return new Response(JSON.stringify({
+      atRisk: atRisk.map(c => ({ id: c.id, name: c.name, last_contact: c.last_contact, engagement_trend: c.engagement_trend })),
+      opportunities: opportunities.map(c => ({ id: c.id, name: c.name, trust_score: c.trust_score, engagement_trend: c.engagement_trend })),
+      clusterGaps: clusterGaps.map(([type, count]) => ({ type, count })),
+      suggestedActions,
+      totalContacts: contacts.length,
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 200,
+    })
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), { status: 500 })
   }
 })
 
-function generateNetworkInsights(contacts: any[]) {
+// Example type for a contact (customize as needed)
+type Contact = {
+  id: string;
+  name: string;
+  last_contact?: string;
+  engagement_trend?: string;
+  trust_score?: number;
+  relationship_type?: string;
+  company?: string;
+  title?: string;
+  location?: string;
+  mutual_connections?: number;
+};
+
+function generateNetworkInsights(contacts: Contact[]) {
   const now = new Date()
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
@@ -203,7 +209,7 @@ function generateNetworkInsights(contacts: any[]) {
   }
 }
 
-function calculateDiversityScore(contacts: any[]) {
+function calculateDiversityScore(contacts: Contact[]): number {
   const companies = new Set(contacts.map(c => c.company))
   const roles = new Set(contacts.map(c => c.title))
   const locations = new Set(contacts.map(c => c.location).filter(Boolean))

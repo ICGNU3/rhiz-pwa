@@ -1,9 +1,6 @@
 import React from 'react';
-import { Mail, Phone, MessageSquare, MoreVertical } from 'lucide-react';
-import Button from '../ui/Button';
-import { getTrustScoreColor, getRelationshipColor, getInitials } from '../../utils/helpers';
-import type { Contact } from '../../types';
 import { getRelationshipHealthScore, getRelationshipHealthLabel } from '../../utils/relationshipHealth';
+import type { Contact } from '../../types';
 
 interface ContactListViewProps {
   contacts: Contact[];

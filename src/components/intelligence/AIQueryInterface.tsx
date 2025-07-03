@@ -103,6 +103,20 @@ export default function AIQueryInterface({ onSend, isProcessing = false }: AIQue
     "Suggest networking events"
   ];
 
+  // Quick network questions
+  const quickNetworkQuestions = [
+    'Who should I reach out to next?',
+    'Who is at risk in my network?',
+    'Where are my network gaps?',
+    'Who has the highest trust score?',
+    'Who did I last contact?',
+  ];
+
+  const handleQuickQuestion = (q: string) => {
+    setQuery(q);
+    setTimeout(() => handleSubmit(), 0); // Ensure query state is updated before submit
+  };
+
   const isLoading = chatMutation.isPending || isProcessing;
 
   return (
@@ -166,6 +180,22 @@ export default function AIQueryInterface({ onSend, isProcessing = false }: AIQue
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Quick Network Questions */}
+      <div className="mb-4">
+        <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">Quick Network Questions</div>
+        <div className="flex flex-wrap gap-2">
+          {quickNetworkQuestions.map((q, i) => (
+            <button
+              key={i}
+              className="btn btn-xs btn-outline"
+              onClick={() => handleQuickQuestion(q)}
+            >
+              {q}
+            </button>
+          ))}
         </div>
       </div>
 

@@ -39,8 +39,8 @@ const Goals: React.FC = () => {
       setIsModalOpen(false);
       setEditingGoal(null);
     },
-    onError: (error: any) => {
-      if (typeof error?.message === 'string' && error.message.includes('Free tier limit')) {
+    onError: (error: unknown) => {
+      if (typeof error === 'string' && error.includes('Free tier limit')) {
         setShowUpgradePrompt(true);
       }
     },

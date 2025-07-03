@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Filter, Search, Grid, List, Trash, Tag, Mail } from 'lucide-react';
+import { Plus, Filter, Trash, Tag, Mail } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/Modal';
 import Spinner from '../components/Spinner';
 import ErrorBorder from '../components/ErrorBorder';
-import ContactCard from '../components/contacts/ContactCard';
 import ContactStats from '../components/contacts/ContactStats';
 import ContactForm from '../components/contacts/ContactForm';
 import ContactSearch from '../components/contacts/ContactSearch';
 import ContactListView from '../components/contacts/ContactListView';
-import { getContacts, createContact, Contact } from '../api/contacts';
+import { getContacts, createContact, Contact, aiCategorizeAndLinkContacts, enrichContactWithWebSearch } from '../api/contacts';
 import { useRealTimeContacts } from '../hooks/useRealTimeContacts';
-import { filterContacts, sortContacts, applyContactFilters } from '../utils/helpers';
+import { sortContacts, applyContactFilters } from '../utils/helpers';
 import { useNotifications, createNotification } from '../context/NotificationContext';
 import { useBehaviorTracking } from '../hooks/useBehaviorTracking';
 import { useContextualSuggestions } from '../hooks/useContextualSuggestions';
@@ -59,13 +58,15 @@ const Contacts: React.FC = () => {
     getFeatureStats,
   } = useBehaviorTracking();
 
-  const { suggestions, smartDefaults } = useContextualSuggestions('contacts');
+  const { suggestions } = useContextualSuggestions('contacts');
   const [showSuggestions, setShowSuggestions] = useState(true);
 
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importedContacts, setImportedContacts] = useState<any[]>([]);
+  const [importedContacts, setImportedContacts] = useState<Record<string, string>[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [suggestedMerge, setSuggestedMerge] = useState<null | { reason: string; ids: string[] }>(null);
+  const [webInfoNotice, setWebInfoNotice] = useState<string | null>(null);
 
   useEffect(() => {
     recordTiming(); // Track app open/check-in
@@ -104,15 +105,48 @@ const Contacts: React.FC = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: createContact,
+    mutationFn: async (contactData: unknown) => {
+      // AI enrichment and deduplication
+      let enrichedContact = contactData as Contact;
+      let merge: unknown = null;
+      try {
+        const aiResult = await aiCategorizeAndLinkContacts([contactData as Contact]);
+        enrichedContact = aiResult.enrichedContacts[0];
+        if (aiResult.suggestedMerges && aiResult.suggestedMerges.length > 0) {
+          merge = aiResult.suggestedMerges[0];
+          setSuggestedMerge(merge as { reason: string; ids: string[] });
+        } else {
+          setSuggestedMerge(null);
+        }
+      } catch {
+        // AI enrichment failed, proceeding without
+      }
+      // Web enrichment
+      try {
+        const webInfo = await enrichContactWithWebSearch({
+          name: enrichedContact.name,
+          email: enrichedContact.email,
+          company: enrichedContact.company,
+        });
+        if (webInfo) {
+          enrichedContact = { ...enrichedContact, webInfo };
+          setWebInfoNotice('Public info found and added to this contact!');
+        } else {
+          setWebInfoNotice(null);
+        }
+      } catch {
+        setWebInfoNotice(null);
+      }
+      return createContact(enrichedContact);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['network-data'] });
       setIsModalOpen(false);
     },
-    onError: (error: any) => {
-      if (typeof error?.message === 'string' && error.message.includes('Free tier limit')) {
+    onError: (error: unknown) => {
+      if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as { message?: unknown }).message === 'string' && (error as { message: string }).message.includes('Free tier limit')) {
         setShowUpgradePrompt(true);
       }
     },
@@ -123,7 +157,7 @@ const Contacts: React.FC = () => {
     if (contacts) setLocalContacts(contacts);
   }, [contacts]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const contactData = {
@@ -138,7 +172,6 @@ const Contacts: React.FC = () => {
       relationship_type: 'colleague', // Default value
       source: 'manual'
     };
-
     createMutation.mutate(contactData);
   };
 
@@ -189,7 +222,7 @@ const Contacts: React.FC = () => {
       const headers = lines[0].split(',');
       const contacts = lines.slice(1).map(line => {
         const values = line.split(',');
-        const obj: any = {};
+        const obj: Record<string, string> = {};
         headers.forEach((h, i) => { obj[h.trim()] = values[i]?.trim(); });
         return obj;
       });
@@ -202,13 +235,13 @@ const Contacts: React.FC = () => {
     // Demo: Add imported contacts to localContacts
     setLocalContacts(prev => [
       ...prev,
-      ...importedContacts.map(c => ({
+      ...importedContacts.map(contact => ({
         id: Math.random().toString(36).slice(2),
         user_id: 'demo',
-        name: `${c['First Name'] || ''} ${c['Last Name'] || ''}`.trim(),
-        email: c['Email Address'] || '',
-        company: c['Company'] || '',
-        title: c['Position'] || '',
+        name: `${contact['First Name'] || ''} ${contact['Last Name'] || ''}`.trim(),
+        email: contact['Email Address'] || '',
+        company: contact['Company'] || '',
+        title: contact['Position'] || '',
         tags: ['linkedin'],
         trust_score: 50,
         relationship_strength: 'medium',
@@ -352,11 +385,9 @@ const Contacts: React.FC = () => {
         )}
 
         {/* Learning Banner for Root Members */}
-        {true && (
-          <div className="mb-2 p-2 rounded bg-gradient-to-r from-blue-100 to-purple-100 text-blue-900 text-xs font-medium shadow">
-            Your Rhiz is learning your workflow to adapt and optimize your experience. 🚀
-          </div>
-        )}
+        <div className="mb-2 p-2 rounded bg-gradient-to-r from-blue-100 to-purple-100 text-blue-900 text-xs font-medium shadow">
+          Your Rhiz is learning your workflow to adapt and optimize your experience. 🚀
+        </div>
 
         {/* Contextual Suggestions Panel */}
         {showSuggestions && suggestions.length > 0 && (
@@ -501,8 +532,8 @@ const Contacts: React.FC = () => {
                 <div className="mb-3">
                   <div className="font-medium mb-1">Preview ({importedContacts.length} contacts):</div>
                   <ul className="max-h-32 overflow-y-auto text-xs bg-gray-50 border rounded p-2">
-                    {importedContacts.slice(0, 5).map((c, i) => (
-                      <li key={i}>{c['First Name']} {c['Last Name']} - {c['Email Address']} - {c['Company']} - {c['Position']}</li>
+                    {importedContacts.slice(0, 5).map((contact, i) => (
+                      <li key={i}>{contact['First Name']} {contact['Last Name']} - {contact['Email Address']} - {contact['Company']} - {contact['Position']}</li>
                     ))}
                     {importedContacts.length > 5 && <li>...and {importedContacts.length - 5} more</li>}
                   </ul>
@@ -514,6 +545,19 @@ const Contacts: React.FC = () => {
               </div>
             </div>
           </Modal>
+        )}
+
+        {suggestedMerge && (
+          <div className="mb-4 p-4 rounded bg-yellow-50 border border-yellow-200 text-yellow-900">
+            <strong>Potential Duplicate:</strong> This contact may already exist. <br />
+            <span className="text-xs">Reason: {suggestedMerge.reason} (IDs: {suggestedMerge.ids.join(', ')})</span>
+          </div>
+        )}
+
+        {webInfoNotice && (
+          <div className="mb-4 p-4 rounded bg-blue-50 border border-blue-200 text-blue-900">
+            {webInfoNotice}
+          </div>
         )}
 
         <UpgradePrompt open={showUpgradePrompt} onClose={() => setShowUpgradePrompt(false)} type="contacts" />

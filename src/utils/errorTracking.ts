@@ -9,7 +9,7 @@ export interface ErrorInfo {
   url?: string;
   timestamp: string;
   userAgent?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 class ErrorTracker {
@@ -26,7 +26,7 @@ class ErrorTracker {
     this.userId = userId;
   }
 
-  captureError(error: Error, additionalData?: Record<string, any>) {
+  captureError(error: Error, additionalData?: Record<string, unknown>) {
     const errorInfo: ErrorInfo = {
       message: error.message,
       stack: error.stack,
@@ -120,7 +120,7 @@ class ErrorTracker {
   }
 
   // Performance monitoring
-  capturePerformanceMetric(name: string, duration: number, additionalData?: Record<string, any>) {
+  capturePerformanceMetric(name: string, duration: number, additionalData?: Record<string, unknown>) {
     const metric = {
       name,
       duration,
@@ -138,7 +138,7 @@ class ErrorTracker {
   }
 
   // User interaction tracking
-  captureUserAction(action: string, target?: string, additionalData?: Record<string, any>) {
+  captureUserAction(action: string, target?: string, additionalData?: Record<string, unknown>) {
     const actionInfo = {
       action,
       target,
@@ -160,7 +160,7 @@ class ErrorTracker {
 export const errorTracker = new ErrorTracker();
 
 // Global error handlers
-window.addEventListener('error', (event) => {
+window.addEventListener('error', (event: ErrorEvent) => {
   errorTracker.captureError(event.error, {
     type: 'unhandled-error',
     filename: event.filename,
@@ -169,8 +169,9 @@ window.addEventListener('error', (event) => {
   });
 });
 
-window.addEventListener('unhandledrejection', (event) => {
-  errorTracker.captureError(new Error(event.reason), {
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+  errorTracker.captureError(reason, {
     type: 'unhandled-promise-rejection',
   });
 });

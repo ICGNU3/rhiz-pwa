@@ -99,7 +99,7 @@ export interface TeamActivity {
   resourceId?: string;
   resourceType?: 'contact' | 'goal' | 'member';
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 

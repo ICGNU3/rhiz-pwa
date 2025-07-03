@@ -26,48 +26,16 @@ export function useImageOptimizer(
       return;
     }
 
-    // Check if browser supports modern image formats
-    const supportsWebP = () => {
-      const canvas = document.createElement('canvas');
-      if (canvas.getContext && canvas.getContext('2d')) {
-        return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-      }
-      return false;
-    };
-
-    const supportsAvif = async () => {
-      if (!createImageBitmap) return false;
-      
-      const avifData = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A=';
-      try {
-        const blob = await fetch(avifData).then(r => r.blob());
-        return createImageBitmap(blob).then(() => true, () => false);
-      } catch (e) {
-        return false;
-      }
-    };
-
     const optimizeImage = async () => {
       try {
         setIsLoading(true);
-        
-        // Determine best format
-        let format = options.format || 'webp';
-        const webpSupported = supportsWebP();
-        const avifSupported = await supportsAvif();
-        
-        if (!options.format) {
-          if (avifSupported) format = 'avif';
-          else if (webpSupported) format = 'webp';
-          else format = 'jpeg';
-        }
         
         // For local development, just return the original
         // In production, this would connect to an image optimization service
         setOptimizedSrc(src);
         setIsLoading(false);
-      } catch (err) {
-        setError(err as Error);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err : new Error(String(err)));
         setOptimizedSrc(src); // Fallback to original
         setIsLoading(false);
       }

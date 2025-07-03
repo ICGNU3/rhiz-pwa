@@ -1,5 +1,5 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -11,10 +11,6 @@ import {
   Network, 
   Shield, 
   Settings,
-  Moon,
-  Sun,
-  Download,
-  MessageSquare,
   DollarSign,
   Sparkles,
   Info,
@@ -24,14 +20,18 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { deferredPrompt } from '../main';
 import usePrefetchRoute from '../hooks/usePrefetchRoute';
-import LoadingScreen from './LoadingScreen';
 import SearchBar from './SearchBar';
 import NotificationCenter from './NotificationCenter';
 
 // Lazy load the sidebar content to improve initial load time
 const SidebarContent = lazy(() => import('./SidebarContent'));
+
+// Add BeforeInstallPromptEvent interface for correct typing
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -74,6 +74,13 @@ const Layout: React.FC = () => {
     { name: 'FAQ', href: '/faq', icon: HelpCircle, description: 'Frequently asked questions' },
     { name: 'Contact', href: '/contact', icon: Mail, description: 'Get in touch' },
   ];
+
+  // Update deferredPrompt usage to use BeforeInstallPromptEvent
+  let deferredPrompt: BeforeInstallPromptEvent | null = null;
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    deferredPrompt = e as BeforeInstallPromptEvent;
+  });
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans font-light">

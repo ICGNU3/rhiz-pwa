@@ -35,7 +35,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       try {
         const parsed = JSON.parse(savedNotifications);
         // Convert timestamp strings back to Date objects
-        const notificationsWithDates = parsed.map((n: any) => ({
+        const notificationsWithDates = parsed.map((n: Notification) => ({
           ...n,
           timestamp: new Date(n.timestamp)
         }));
@@ -117,7 +117,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
 // Notification helper functions
 export const createNotification = {
-  success: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: any) => ({
+  success: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'success' as const,
     title,
     message,
@@ -125,7 +125,7 @@ export const createNotification = {
     action
   }),
   
-  error: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: any) => ({
+  error: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'error' as const,
     title,
     message,
@@ -133,7 +133,7 @@ export const createNotification = {
     action
   }),
   
-  warning: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: any) => ({
+  warning: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'warning' as const,
     title,
     message,
@@ -141,7 +141,7 @@ export const createNotification = {
     action
   }),
   
-  info: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: any) => ({
+  info: (title: string, message: string, category?: 'contact' | 'goal' | 'ai' | 'system' | 'network', action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'info' as const,
     title,
     message,
@@ -149,7 +149,7 @@ export const createNotification = {
     action
   }),
   
-  contact: (title: string, message: string, action?: any) => ({
+  contact: (title: string, message: string, action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'info' as const,
     title,
     message,
@@ -157,7 +157,7 @@ export const createNotification = {
     action
   }),
   
-  goal: (title: string, message: string, action?: any) => ({
+  goal: (title: string, message: string, action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'info' as const,
     title,
     message,
@@ -165,7 +165,7 @@ export const createNotification = {
     action
   }),
   
-  ai: (title: string, message: string, action?: any) => ({
+  ai: (title: string, message: string, action?: { label: string; onClick: () => void } | undefined) => ({
     type: 'info' as const,
     title,
     message,
